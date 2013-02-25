@@ -7,3 +7,4 @@ Intial Contributors
 ===================
 
 Christian Gribneau (gribneau)
+Joshua Murphy (l0stbitz)
