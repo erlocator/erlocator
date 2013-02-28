@@ -48,7 +48,8 @@ start(Opts) ->
                              [?POOL_NAME, PoolSize, ChildMods, ChildMFA]},
                             transient, 2000, supervisor, [cuesport | ChildMods]}).
 bbox(Hash) ->
-  todo, {bbox, {}}.
+  {ok, Bbox} = geohash:decode_bbox_int(Hash),
+  Bbox.
 
 neighbors(Hash) ->
   cmd(["ZRANGE", ?GEOHASH_KEY(Hash), 0, -1]).

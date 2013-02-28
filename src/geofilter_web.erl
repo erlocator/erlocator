@@ -26,33 +26,34 @@ stop() ->
     mochiweb_http:stop(?MODULE).
 
 loop(Req, DocRoot, AppParams) ->
-    "/" ++ Path = Req:get(path),
-	Params = Req:parse_qs(),
+    "/" ++ Path = Req:get(path),	
     case Req:get(method) of
         Method when Method =:= 'GET'; Method =:= 'HEAD' ->
+		  Params = Req:parse_qs(),
             case Path of
               	"geo/neighbors" ->
-				 UserId = proplists:get_value("id", Params), 
+				 Hash = list_to_integer(proplists:get_value("geonum", Params)), 
                  Req:ok({"application/json", [], 
-						 to_json(geofilter:neighbors(UserId, proplists:get_value(geohash_bits, AppParams)))});
+						 to_json(geofilter:neighbors(Hash))});
 			  "geo/bbox" ->
-				UserId = proplists:get_value("id", Params),
+				Hash = list_to_integer(proplists:get_value("geonum", Params)),
 				Req:ok({"application/json", [], 
-						 to_json(geofilter:bbox(UserId, proplists:get_value(geohash_bits, AppParams)))});
+						 to_json({bbox, geofilter:bbox(Hash)})});
                 _ ->
                     %%Req:serve_file(Path, DocRoot)
                   Req:not_found()
             end;
         'POST' ->
+		    Params = Req:parse_post(),
             case Path of
 			  "geo/set" ->
 				UserId = proplists:get_value("id", Params),
 				Lat = proplists:get_value("lat", Params),
 				Lon = proplists:get_value("lon", Params),
-				geofilter:set(UserId, to_number(Lat), to_number(Lon), proplists:get_value(geohash_bits, AppParams)),
+				UserHash = geofilter:set(UserId, to_number(Lat), to_number(Lon), proplists:get_value(geohash_bits, AppParams)),
 				Req:respond({200,
-                       [{"Content-Type", "text/html"}],
-                       list_to_binary("OK")});
+                       [{"Content-Type", "application/json"}],
+                       to_json({geonum, UserHash})});
                 _ ->
                     Req:not_found()
             end;
@@ -66,6 +67,9 @@ get_option(Option, Options) ->
     {proplists:get_value(Option, Options), proplists:delete(Option, Options)}.
 
 
+to_number(Num) when is_number(Num) ->
+  Num;
+
 to_number(Str) ->
     case string:to_float(Str) of
         {error,no_float} -> list_to_integer(Str);
@@ -73,11 +77,16 @@ to_number(Str) ->
     end.
 
 to_json(Neighbors) when is_list(Neighbors) ->
-  todo, "{\"neighbors\": []}";
+  json_utils:encode({struct, [{"neighbors", {array, Neighbors}}]});
 
-to_json(Bbox) when is_tuple(Bbox) ->
-  todo, "{\"bbox\": {}}";
+to_json({geonum, _Hash} = Data) ->
+  json_utils:encode({struct, [Data]});
 
+to_json({bbox, Bbox}) ->
+  {{TopLeftLat, TopLeftLon}, {BottomRightLat, BottomRightLon}} = Bbox,
+  json_utils:encode({struct, [{"top_left", {struct, [{"lat", TopLeftLat}, {"lon", TopLeftLon}]}}, 
+							  {"bottom_right", {struct, [{"lat", BottomRightLat}, {"lon", BottomRightLon}]}}
+							 ]});
 to_json(_) ->
   throw(unkonwn_json_type).
 
