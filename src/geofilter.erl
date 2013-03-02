@@ -9,7 +9,7 @@
 %% API functions
 %% ====================================================================
 -export([start/1]).
--export([bbox/1, neighbors/1, set/4, delete/1]).
+-export([bbox/1, bbox_3x3/1, neighbors/1, set/4, delete/1]).
 -export([start/0, stop/0]).
 
 -compile(export_all).
@@ -52,14 +52,23 @@ bbox(Hash) ->
   {ok, Bbox} = geohash:decode_bbox_int(Hash),
   Bbox.
 
+bbox_3x3(Hash) ->
+  Hashes = hashes3x3(Hash),
+  %% Take top left coordinate of north-west box and bottom right coordinate of south-east box
+  NW = lists:nth(6, Hashes),
+  SE = lists:last(Hashes),
+  {TopLeft, _} = bbox(NW),
+  {_, BottomRight} = bbox(SE),
+  {TopLeft, BottomRight}.
+
 neighbors(Hash) ->
   cmd(["ZRANGE", ?GEOHASH_KEY(Hash), 0, -1]).
 
 set(UserId, Lat, Lon, Precision) ->
   %% Calculate geohash for immediate bounding box, and 8 surrounding boxes.
-  Geohashes3x3 = hashes_3x3(Lat, Lon, Precision),
+  {ok, UserGeohash} = geohash:encode_int(Lat, Lon, Precision),	
+  Geohashes3x3 = hashes3x3(UserGeohash),
   Commands = lists:map(fun(H) -> ["ZADD", ?GEOHASH_KEY(H), float_to_list(distance(Lat, Lon, H)), UserId] end, Geohashes3x3),
-  UserGeohash = hd(Geohashes3x3),
   StoreUserCommand = ["SET", ?USER_KEY(UserId), UserGeohash],
   spawn(fun() -> cmd([StoreUserCommand | Commands]) end),
   UserGeohash.
@@ -84,10 +93,9 @@ delete(UserId) ->
 cmd(Cmd) ->
     redo:cmd(cuesport:get_worker(?POOL_NAME), Cmd).
 
-hashes_3x3(Lat, Lon, Precision) ->
-  {ok, H} = geohash:encode_int(Lat, Lon, Precision),
-  {ok, NeighborHashes} = geohash:neighbors_int(H),
-  [H | NeighborHashes].
+hashes3x3(Hash) ->
+  {ok, NeighborHashes} = geohash:neighbors_int(Hash),
+  [Hash | NeighborHashes].
 
 %% Time in milliseconds
 -spec ts() -> integer().
