@@ -54,6 +54,16 @@ loop(Req, DocRoot, AppParams) ->
 				Req:respond({200,
                        [{"Content-Type", "application/json"}],
                        to_json({geonum, UserHash})});
+			  "geo/delete" ->
+				UserId = proplists:get_value("id", Params),
+				case geofilter:delete(UserId) of
+				  ok ->
+					Req:respond({200, [], []});
+				  {error, not_found} ->
+					Req:not_found();
+				  _Other ->
+					Req:respond({500, [], []})
+				end;
                 _ ->
                     Req:not_found()
             end;
@@ -72,7 +82,7 @@ to_number(Num) when is_number(Num) ->
 
 to_number(Str) ->
     case string:to_float(Str) of
-        {error,no_float} -> list_to_integer(Str);
+        {error,no_float} -> list_to_integer(Str)*1.0;
         {F,_Rest} -> F
     end.
 

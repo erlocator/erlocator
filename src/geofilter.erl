@@ -3,12 +3,13 @@
 -module(geofilter).
 
 -define(POOL_NAME, redis_pool).
--define(GEOHASH_KEY(H), ["geohash:", integer_to_list(H)]).
+-define(GEOHASH_KEY(H), ["geonum:", integer_to_list(H)]).
+-define(USER_KEY(Id), ["geonum_user:", Id]).
 %% ====================================================================
 %% API functions
 %% ====================================================================
 -export([start/1]).
--export([bbox/1, neighbors/1, set/4]).
+-export([bbox/1, neighbors/1, set/4, delete/1]).
 -export([start/0, stop/0]).
 
 -compile(export_all).
@@ -58,10 +59,24 @@ set(UserId, Lat, Lon, Precision) ->
   %% Calculate geohash for immediate bounding box, and 8 surrounding boxes.
   Geohashes3x3 = hashes_3x3(Lat, Lon, Precision),
   Commands = lists:map(fun(H) -> ["ZADD", ?GEOHASH_KEY(H), ts(), UserId] end, Geohashes3x3),
-  spawn(fun() -> cmd(Commands) end),
-  hd(Geohashes3x3).
+  UserGeohash = hd(Geohashes3x3),
+  StoreUserCommand = ["SET", ?USER_KEY(UserId), UserGeohash],
+  spawn(fun() -> cmd([StoreUserCommand | Commands]) end),
+  UserGeohash.
 
-
+delete(UserId) ->
+  case cmd(["GET", ?USER_KEY(UserId)]) of
+	undefined ->
+	  {error, not_found};
+	Hash ->
+	  HashInt = list_to_integer(binary_to_list(Hash)),
+	  {ok, AdjacentHashes} = geohash:neighbors_int(HashInt),
+	  Commands = lists:map(fun(H) -> ["ZREM", ?GEOHASH_KEY(H), UserId] end, [HashInt | AdjacentHashes]),
+	  RemoveUserCommand = ["DEL", ?USER_KEY(UserId)],
+	  spawn(fun() -> cmd([RemoveUserCommand | Commands]) end),
+	  ok
+  end.
+  
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
