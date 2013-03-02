@@ -58,7 +58,7 @@ neighbors(Hash) ->
 set(UserId, Lat, Lon, Precision) ->
   %% Calculate geohash for immediate bounding box, and 8 surrounding boxes.
   Geohashes3x3 = hashes_3x3(Lat, Lon, Precision),
-  Commands = lists:map(fun(H) -> ["ZADD", ?GEOHASH_KEY(H), ts(), UserId] end, Geohashes3x3),
+  Commands = lists:map(fun(H) -> ["ZADD", ?GEOHASH_KEY(H), float_to_list(distance(Lat, Lon, H)), UserId] end, Geohashes3x3),
   UserGeohash = hd(Geohashes3x3),
   StoreUserCommand = ["SET", ?USER_KEY(UserId), UserGeohash],
   spawn(fun() -> cmd([StoreUserCommand | Commands]) end),
@@ -94,3 +94,30 @@ hashes_3x3(Lat, Lon, Precision) ->
 ts() ->
   {Mega, Sec, Micro} = now(),
   Mega * 1000000000 + Sec * 1000 + erlang:round(Micro / 1000).
+
+%% Distance from the point {Lat, Lon} to the center of bounding box defined by Hash
+-spec distance(float(), float(), integer()) -> float(). 
+distance(Lat, Lon, Hash) ->
+  {ok, BBox} = geohash:decode_bbox_int(Hash),
+  {{TopLeftLat, TopLeftLon}, {BottomRightLat, BottomRightLon}} = BBox,  
+  MidPointLat = (TopLeftLat + BottomRightLat)/2,
+  MidPointLon = (TopLeftLon + BottomRightLon)/2,
+  distance(Lat, Lon, MidPointLat, MidPointLon).
+
+%% Distance between two points (Haversine)
+%% Reference to original code: http://pdincau.wordpress.com/2012/12/26/distance-between-two-points-on-earth-in-erlang-an-haversine-function-implementation/
+-spec distance(float(), float(), float(), float()) -> float().
+distance(Lng1, Lat1, Lng2, Lat2) ->
+    Deg2rad = fun(Deg) -> math:pi()*Deg/180 end,
+    [RLng1, RLat1, RLng2, RLat2] = [Deg2rad(Deg) || Deg <- [Lng1, Lat1, Lng2, Lat2]],
+
+    DLon = RLng2 - RLng1,
+    DLat = RLat2 - RLat1,
+
+    A = math:pow(math:sin(DLat/2), 2) + math:cos(RLat1) * math:cos(RLat2) * math:pow(math:sin(DLon/2), 2),
+
+    C = 2 * math:asin(math:sqrt(A)),
+
+    %% suppose radius of Earth is 6372.8 km
+    Km = 6372.8 * C,
+    Km.
