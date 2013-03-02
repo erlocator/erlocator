@@ -107,9 +107,9 @@ distance(Lat, Lon, Hash) ->
 %% Distance between two points (Haversine)
 %% Reference to original code: http://pdincau.wordpress.com/2012/12/26/distance-between-two-points-on-earth-in-erlang-an-haversine-function-implementation/
 -spec distance(float(), float(), float(), float()) -> float().
-distance(Lng1, Lat1, Lng2, Lat2) ->
+distance(Lat1, Lng1, Lat2, Lng2) ->
     Deg2rad = fun(Deg) -> math:pi()*Deg/180 end,
-    [RLng1, RLat1, RLng2, RLat2] = [Deg2rad(Deg) || Deg <- [Lng1, Lat1, Lng2, Lat2]],
+    [RLat1, RLng1, RLat2, RLng2] = [Deg2rad(Deg) || Deg <- [Lat1, Lng1, Lat2, Lng2]],
 
     DLon = RLng2 - RLng1,
     DLat = RLat2 - RLat1,
