@@ -27,7 +27,7 @@
 
 #include "erl_nif_compat.h"
 
-#define GEONUM_MAX 64
+#define GEONUM_MAX 62
 
 #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \
