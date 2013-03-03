@@ -50,7 +50,7 @@ loop(Req, DocRoot, AppParams) ->
 				UserId = proplists:get_value("id", Params),
 				Lat = proplists:get_value("lat", Params),
 				Lon = proplists:get_value("lon", Params),
-				UserHash = geofilter:set(UserId, to_number(Lat), to_number(Lon), proplists:get_value(geohash_bits, AppParams)),
+				UserHash = geofilter:set(UserId, to_number(Lat), to_number(Lon), proplists:get_value(geonum_bits, AppParams)),
 				Req:respond({200,
                        [{"Content-Type", "application/json"}],
                        to_json({geonum, UserHash})});

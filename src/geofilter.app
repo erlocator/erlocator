@@ -10,7 +10,7 @@
   ]},
   {registered, []},
   {mod, {geofilter_app, []}},
-  {env, [{geohash_bits, 25},
+  {env, [{geonum_bits, 25},
   			{redis_pool_size, 20},
   			{redis_host, "localhost"},
   			{redis_port, 6379}
