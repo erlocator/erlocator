@@ -25,7 +25,7 @@ start(Options) ->
 stop() ->
     mochiweb_http:stop(?MODULE).
 
-loop(Req, DocRoot, AppParams) ->
+loop(Req, _DocRoot, AppParams) ->
     "/" ++ Path = Req:get(path),	
     case Req:get(method) of
         Method when Method =:= 'GET'; Method =:= 'HEAD' ->
