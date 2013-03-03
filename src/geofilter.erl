@@ -49,7 +49,7 @@ start(Opts) ->
                              [?POOL_NAME, PoolSize, ChildMods, ChildMFA]},
                             transient, 2000, supervisor, [cuesport | ChildMods]}).
 bbox(Hash) ->
-  {ok, Bbox} = geohash:decode_bbox_int(Hash),
+  {ok, Bbox} = geonum:decode_bbox(Hash),
   Bbox.
 
 bbox_3x3(Hash) ->
@@ -66,7 +66,7 @@ neighbors(Hash) ->
 
 set(UserId, Lat, Lon, Precision) ->
   %% Calculate geohash for immediate bounding box, and 8 surrounding boxes.
-  {ok, UserGeohash} = geohash:encode_int(Lat, Lon, Precision),	
+  {ok, UserGeohash} = geonum:encode(Lat, Lon, Precision),	
   Geohashes3x3 = hashes3x3(UserGeohash),
   Commands = lists:map(fun(H) -> ["ZADD", ?GEOHASH_KEY(H), float_to_list(distance(Lat, Lon, H)), UserId] end, Geohashes3x3),
   StoreUserCommand = ["SET", ?USER_KEY(UserId), UserGeohash],
@@ -79,7 +79,7 @@ delete(UserId) ->
 	  {error, not_found};
 	Hash ->
 	  HashInt = list_to_integer(binary_to_list(Hash)),
-	  {ok, AdjacentHashes} = geohash:neighbors_int(HashInt),
+	  {ok, AdjacentHashes} = geonum:neighbors(HashInt),
 	  Commands = lists:map(fun(H) -> ["ZREM", ?GEOHASH_KEY(H), UserId] end, [HashInt | AdjacentHashes]),
 	  RemoveUserCommand = ["DEL", ?USER_KEY(UserId)],
 	  spawn(fun() -> cmd([RemoveUserCommand | Commands]) end),
@@ -94,7 +94,7 @@ cmd(Cmd) ->
     redo:cmd(cuesport:get_worker(?POOL_NAME), Cmd).
 
 hashes3x3(Hash) ->
-  {ok, NeighborHashes} = geohash:neighbors_int(Hash),
+  {ok, NeighborHashes} = geonum:neighbors(Hash),
   [Hash | NeighborHashes].
 
 %% Time in milliseconds
@@ -106,14 +106,12 @@ ts() ->
 %% Distance from the point {Lat, Lon} to the center of bounding box defined by Hash
 -spec distance(float(), float(), integer()) -> float(). 
 distance(Lat, Lon, Hash) ->
-  {ok, BBox} = geohash:decode_bbox_int(Hash),
-  {{TopLeftLat, TopLeftLon}, {BottomRightLat, BottomRightLon}} = BBox,  
-  MidPointLat = (TopLeftLat + BottomRightLat)/2,
-  MidPointLon = (TopLeftLon + BottomRightLon)/2,
+  {ok, {MidPointLat, MidPointLon} = _MidPoint} = geonum:decode(Hash),
   distance(Lat, Lon, MidPointLat, MidPointLon).
 
 %% Distance between two points (Haversine)
 %% Reference to original code: http://pdincau.wordpress.com/2012/12/26/distance-between-two-points-on-earth-in-erlang-an-haversine-function-implementation/
+%% TOD: Move to NIF
 -spec distance(float(), float(), float(), float()) -> float().
 distance(Lat1, Lng1, Lat2, Lng2) ->
     Deg2rad = fun(Deg) -> math:pi()*Deg/180 end,
