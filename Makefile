@@ -1,20 +1,11 @@
-all: ebin/
-	(cd src;$(MAKE) all)
+REBAR=rebar
 
-edoc:
-	(cd src;$(MAKE) edoc)
+DEPS_EBIN = `find . -name ebin -type d`
 
-test:
-	(cd src;$(MAKE) test)
-
+all:
+	for a in deps/*; do cd $$a; make; cd -; done
+	@$(REBAR) compile
 clean:
-	(cd src;$(MAKE) clean)
+	for a in deps/*; do cd $$a; make clean; cd -; done
+	@$(REBAR) clean
 
-clean_plt:
-	(cd src;$(MAKE) clean_plt)
-
-dialyzer:
-	(cd src;$(MAKE) dialyzer)
-
-ebin/:
-	@mkdir -p ebin
