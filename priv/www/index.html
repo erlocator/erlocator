@@ -1,8 +1,260 @@
-<html>
-<head>
-<title>It Worked</title>
+<!DOCTYPE html>
+<html lang="en" xmlns:fb="http://www.facebook.com/2008/fbml">
+  <head>
+	<meta charset="UTF-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+	<title>Erlocator</title>
+	<meta name="description" content="Erlocator." />
+	<meta name="author" content="Erlocator Client">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link rel="shortcut icon" href="/favicon.ico" />
 </head>
 <body>
-MochiWeb running.
+<style>
+    #clientform{
+        width:200px;
+        float:left;
+    }
+    #googlemap{
+        width : 744px;
+        height : 400px;
+    }
+</style>
+<div id="clientform">
+    <label>First Name</label><input id="first_name" type="text" value="guest"/>
+    <br/>
+    <label>Last Name</label><input id="last_name" type="text" value="guest"/>
+    <button id="updateinfo">Update Info</button>
+    <br/>
+    <button id="neighbors">Get Neighbors</button>
+    <button id="boundingbox">Get Bounding Box</button>
+</div>
+<div id="googlemap"></div>
+
+
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.3/jquery-ui.min.js"></script>
+<script type="text/javascript" src="//maps.googleapis.com/maps/api/js?key=AIzaSyBKDimjznrPHNMwq4H0hJ036LzP_UFpbdo&amp;sensor=true&amp;libraries=geometry"></script>
+
+<div id="fb-root"></div>
+<script type="text/javascript">
+	window.fbAsyncInit = function() {
+		FB.init({appId: "247269135382525", status: true, cookie: true, xfbml: true});
+	};
+	(function() {
+		var e = document.createElement('script'); e.async = true;
+		e.src = document.location.protocol +
+		'//connect.facebook.net/en_US/all.js';
+		document.getElementById('fb-root').appendChild(e);
+}());
+</script>
+<!-- End Facebook -->
+<script>
+//identifier for the user
+var host = "http://xmpp3.dev.biglive.com:8000/";
+var client = {
+    id : Math.floor((Math.random()*10000)+1).toString(),
+    first_name : "guest",
+    last_name : "guest",
+    lat : 40,
+    lon : -74
+};
+ var data = {
+    geonum : "",
+    geocoder : "",
+    boundingbox : "",
+    map : "",
+    arrCurrentMarkers : []
+};
+$(document).ready(function(){
+    if(navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+              client.lat = position.coords.latitude;
+              client.lon = position.coords.longitude;
+              addClient();
+              if(data.map){
+                  data.map.setCenter(new google.maps.LatLng(client.lat ,client.lon));
+                  placeMarker(client,true);
+              }
+        }, function() {
+
+        }, {maximumAge:30000, timeout: 2000});
+    } else {
+        // Browser doesn't support Geolocation
+    }
+    if(typeof(google)!=='undefined'){
+            var mapOptions = {
+                width: 744,
+                zoom: 2,
+                minZoom: 2,
+                disableDefaultUI: true,
+                zoomControl: true,
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            };
+            data.map = new google.maps.Map(document.getElementById('googlemap'),
+                    mapOptions);
+            data.map.setCenter(new google.maps.LatLng(client.lat,client.lon));
+            data.map.setZoom(11);
+    }
+    $('#neighbors').click(function(){
+        getNeighbors();
+    });
+    $('#boundingbox').click(function(){
+        if( $('#boundingbox').text()=="Get Bounding Box"){
+            getBoundingBox();
+            $('#boundingbox').text("Clear Bounding Box");
+        }else{
+            if(data.bounding_box)data.bounding_box.setMap(null);
+            $('#boundingbox').text("Get Bounding Box");
+        }
+    });
+    $('#updateinfo').click(function(){
+        client.first_name = $('#first_name').val();
+        client.last_name = $('#last_name').val();
+        addClient();
+        placeMarker(client,true);
+    });
+    $('#first_name').val(client.first_name);
+    $('#last_name').val(client.last_name);
+});
+
+function getNeighbors(){
+    $.getJSON(host+'geo/neighbors',"geonum="+client.geonum,function(response){
+        /*
+         {"neighbors":[{"geonum":62914559,"id":"1501","lat":"90","lon":"90"},{"geonum":62914558,"id":"1502","lat":"90","lon":"90"}]}
+         */
+         $.each(response.neighbors, function(index, neighbor) {
+             clearMap();
+             if(neighbor.id != client.id){
+                if(typeof(neighbor.first_name) == "undefined")neighbor.first_name = "Neighbor ";
+                if(typeof(neighbor.last_name) == "undefined")neighbor.last_name = neighbor.id;
+                placeMarker(neighbor);
+             }
+         });
+    });
+}
+
+function getBoundingBox(){
+    $.getJSON(host+'geo/bbox',"geonum="+client.geonum,function(response){
+        /*
+         {"top_left":{"lat":90.0,"lon":89.9560546875},"bottom_right":{"lat":89.9560546875,"lon":90.0}}
+         */
+        //draw bounding box
+        var tleft = response.bbox_3x3.top_left;
+        var bright = response.bbox_3x3.bottom_right;
+        var bound = new google.maps.LatLngBounds();
+        bound.extend(new google.maps.LatLng(tleft.lat,tleft.lon));
+        bound.extend(new google.maps.LatLng(bright.lat,bright.lon));
+
+        ne = bound.getNorthEast();
+        sw = bound.getSouthWest();
+        se = new google.maps.LatLng(sw.lat(),ne.lng());
+        nw = new google.maps.LatLng(ne.lat(),sw.lng());
+        map_c = new google.maps.LatLng(ne.lat(),-180);
+        map_ne = new google.maps.LatLng(74,-180);
+        map_sw =  new google.maps.LatLng(-90,180);
+        map_se1 = new google.maps.LatLng(map_sw.lat(),0);
+        map_se2 = new google.maps.LatLng(map_sw.lat(),-180);
+        map_nw = new google.maps.LatLng(map_ne.lat(),map_sw.lng());
+        if(data.bounding_box)data.bounding_box.setMap(null);
+        data.bounding_box = new google.maps.Polygon({
+        paths: [ne,se,sw,nw,map_ne,map_se2,map_se1,map_sw,map_c,ne],
+                  strokeColor: "blue",
+                  strokeOpacity: 0.8,
+                  strokeWeight: 0,
+                  fillColor: "blue",
+                  fillOpacity: 0.15,
+                  map: data.map
+        });
+    });
+}
+
+function addClient(){
+    //at a a minimum id, lat, lon must be provided
+    $.post(host+'geo/set',client,
+        function(obj) {
+            var response = jQuery.parseJSON(obj);
+            client.geonum = obj.geonum;
+        }
+    );
+}
+
+function placeMarker(obj,draggable){
+    //make sure we are not leaving duplicate markers
+    if(data.arrCurrentMarkers["m"+obj.id]){data.arrCurrentMarkers["m"+obj.id].setMap(null);}
+    var el = '<div class="map_info">';
+    var userFullName = obj.first_name + ' ' + obj.last_name;
+    if (userFullName.length > 20) {
+            userFullName = userFullName.substr(0, 20) + '...';
+    }
+    el += '<span>'+userFullName+'</span><br/>';
+
+    el += '</div>';
+    var infowindow = new google.maps.InfoWindow({
+      content: el
+    });
+
+    if(draggable){
+        //Client
+        var marker = new google.maps.Marker({
+            icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+            draggable: true,
+            position: new google.maps.LatLng(obj.lat, obj.lon),
+            map: data.map
+         });
+
+         google.maps.event.addListener(marker, 'dragend', function() {
+              var pos = marker.getPosition();
+              client.lat = pos.lat();
+              client.lon = pos.lng();
+              addClient();
+        });
+    }else{
+        //Neighbor
+       var marker = new google.maps.Marker({
+        position: new google.maps.LatLng(obj.lat, obj.lon),
+        map: data.map
+    });
+    }
+    google.maps.event.addListener(marker, 'click', function() {
+        infowindow.open(data.map,marker);
+    });
+
+    google.maps.event.addListener(marker, 'click', function() {
+        infowindow.open(data.map,marker);
+    });
+
+    data.arrCurrentMarkers["m"+obj.id] = marker; //Add Marker to array
+}
+
+function removeClient(id){
+    $.post(host+'geo/delete','id='+id,
+        function(response) {
+            removeMaker(response);
+        }
+    );
+}
+
+function removeMarker (obj) {
+     if(data.arrCurrentMarkers["m"+obj.id]){
+        data.arrCurrentMarkers["m"+obj.id].setMap(null);
+        delete 	data.arrCurrentMarkers["m"+obj.id];
+     }
+}
+
+function clearMap() {
+    for(var key in data.arrCurrentMarkers){
+            data.arrCurrentMarkers[key].setMap(null);
+            delete data.arrCurrentMarkers[key];
+    }
+    placeMarker(client,true);
+}//end clearMap
+
+window.onbeforeunload = function() {
+  removeClient(client.id);
+}
+</script>
 </body>
 </html>
