@@ -34,7 +34,7 @@ loop(Req, _DocRoot, AppParams) ->
               	"geo/neighbors" ->
 				 Hash = list_to_integer(proplists:get_value("geonum", Params)), 
                  Req:ok({"application/json", [], 
-						 to_json(geofilter:neighbors(Hash))});
+						 to_json(geofilter:neighbors_full(Hash))});
 			  "geo/bbox" ->
 				Hash = list_to_integer(proplists:get_value("geonum", Params)),
 				Req:ok({"application/json", [], 
@@ -50,7 +50,7 @@ loop(Req, _DocRoot, AppParams) ->
 				UserId = proplists:get_value("id", Params),
 				Lat = proplists:get_value("lat", Params),
 				Lon = proplists:get_value("lon", Params),
-				UserHash = geofilter:set(UserId, to_number(Lat), to_number(Lon), proplists:get_value(geonum_bits, AppParams)),
+				UserHash = geofilter:set(UserId, to_number(Lat), to_number(Lon), proplists:get_value(geonum_bits, AppParams), Params),
 				Req:respond({200,
                        [{"Content-Type", "application/json"}],
                        to_json({geonum, UserHash})});
@@ -87,7 +87,7 @@ to_number(Str) ->
     end.
 
 to_json(Neighbors) when is_list(Neighbors) ->
-  json_utils:encode({struct, [{"neighbors", {array, Neighbors}}]});
+  json_utils:encode({struct, [{"neighbors", {array, lists:map(fun(N) -> {struct, N} end, Neighbors)}}]});
 
 to_json({geonum, _Hash} = Data) ->
   json_utils:encode({struct, [Data]});

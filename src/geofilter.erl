@@ -9,7 +9,7 @@
 %% API functions
 %% ====================================================================
 -export([start/1]).
--export([bbox/1, bbox_3x3/1, neighbors/1, set/4, delete/1]).
+-export([bbox/1, bbox_3x3/1, neighbors/1, neighbors_full/1, set/5, delete/1]).
 -export([start/0, stop/0]).
 
 -compile(export_all).
@@ -64,12 +64,22 @@ bbox_3x3(Hash) ->
 neighbors(Hash) ->
   cmd(["ZRANGE", ?GEONUM_KEY(Hash), 0, -1]).
 
-set(UserId, Lat, Lon, Precision) ->
+neighbors_full(Hash) ->
+  UserIds  = neighbors(Hash),
+  Commands = lists:map(fun(UserId) -> ["GET", ?USER_KEY(UserId)] end, UserIds),
+  case cmd(Commands) of
+	Results when is_list(Results) ->
+	  lists:map(fun(R) -> binary_to_term(R) end, Results);
+	Results when is_binary(Results) ->
+	  [binary_to_term(Results)]
+  end.
+  
+set(UserId, Lat, Lon, Precision, Options) ->
   %% Calculate geonum for immediate bounding box, and 8 surrounding boxes.
   {ok, UserGeonum} = geonum:encode(Lat, Lon, Precision),	
-  Geonumes3x3 = hashes3x3(UserGeonum),
-  Commands = lists:map(fun(H) -> ["ZADD", ?GEONUM_KEY(H), float_to_list(distance(Lat, Lon, H)), UserId] end, Geonumes3x3),
-  StoreUserCommand = ["SET", ?USER_KEY(UserId), UserGeonum],
+  Geonums3x3 = hashes3x3(UserGeonum),
+  Commands = lists:map(fun(H) -> ["ZADD", ?GEONUM_KEY(H), float_to_list(distance(Lat, Lon, H)), UserId] end, Geonums3x3),
+  StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", UserGeonum} | Options])],
   spawn(fun() -> cmd([StoreUserCommand | Commands]) end),
   UserGeonum.
 
@@ -127,3 +137,4 @@ distance(Lat1, Lng1, Lat2, Lng2) ->
     %% suppose radius of Earth is 6372.8 km
     Km = 6372.8 * C,
     Km.
+
