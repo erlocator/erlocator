@@ -101,7 +101,8 @@ void geonum_merge(long long lonBits, long long lonN, long long latBits, long lon
         secondBits = lonBits;
     }
 
-    for (int i = 1; i <= lonN; i++) {
+    int i;
+    for (i = 1; i <= lonN; i++) {
         int m = (i-1)*2;
         h = h + ((long long)1 << m) * (firstBits & 1);
         firstBits = firstBits >> 1;
