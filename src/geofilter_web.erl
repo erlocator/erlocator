@@ -10,6 +10,9 @@
 
 
 -compile(export_all).
+
+-define(FILE_REGEX, "^geonum/demo/").
+
 %% External API
 
 start(Options) ->
@@ -25,7 +28,7 @@ start(Options) ->
 stop() ->
     mochiweb_http:stop(?MODULE).
 
-loop(Req, _DocRoot, AppParams) ->
+loop(Req, DocRoot, AppParams) ->
     "/" ++ Path = Req:get(path),	
     case Req:get(method) of
         Method when Method =:= 'GET'; Method =:= 'HEAD' ->
@@ -39,9 +42,13 @@ loop(Req, _DocRoot, AppParams) ->
 				Hash = list_to_integer(proplists:get_value("geonum", Params)),
 				Req:ok({"application/json", [], 
 						 to_json({bbox, geofilter:bbox(Hash), geofilter:bbox_3x3(Hash)})});
-                _ ->
-                    %%Req:serve_file(Path, DocRoot)
-                  Req:not_found()
+			  FilePath ->
+				case re:split(FilePath, ?FILE_REGEX) of
+				  [_, FileName] ->
+					Req:serve_file(binary_to_list(FileName), DocRoot);
+				  _Other ->
+					Req:not_found()
+				end
             end;
         'POST' ->
 		    Params = Req:parse_post(),
