@@ -38,7 +38,7 @@ loop(Req, _DocRoot, AppParams) ->
 			  "geo/bbox" ->
 				Hash = list_to_integer(proplists:get_value("geonum", Params)),
 				Req:ok({"application/json", [], 
-						 to_json({bbox, geofilter:bbox(Hash)})});
+						 to_json({bbox, geofilter:bbox(Hash), geofilter:bbox_3x3(Hash)})});
                 _ ->
                     %%Req:serve_file(Path, DocRoot)
                   Req:not_found()
@@ -92,11 +92,21 @@ to_json(Neighbors) when is_list(Neighbors) ->
 to_json({geonum, _Hash} = Data) ->
   json_utils:encode({struct, [Data]});
 
-to_json({bbox, Bbox}) ->
+to_json({bbox, Bbox, Bbox3x3}) ->
   {{TopLeftLat, TopLeftLon}, {BottomRightLat, BottomRightLon}} = Bbox,
-  json_utils:encode({struct, [{"top_left", {struct, [{"lat", TopLeftLat}, {"lon", TopLeftLon}]}}, 
+  {{TopLeftLat3x3, TopLeftLon3x3}, {BottomRightLat3x3, BottomRightLon3x3}} = Bbox3x3,
+   
+  json_utils:encode(
+	{struct, [{"bbox",
+	{struct, [{"top_left", {struct, [{"lat", TopLeftLat}, {"lon", TopLeftLon}]}}, 
 							  {"bottom_right", {struct, [{"lat", BottomRightLat}, {"lon", BottomRightLon}]}}
-							 ]});
+							 ]}},
+			  {"bbox_3x3",
+	{struct, [{"top_left", {struct, [{"lat", TopLeftLat3x3}, {"lon", TopLeftLon3x3}]}}, 
+							  {"bottom_right", {struct, [{"lat", BottomRightLat3x3}, {"lon", BottomRightLon3x3}]}}
+							 ]}}			  
+			  ]});
+
 to_json(_) ->
   throw(unkonwn_json_type).
 
