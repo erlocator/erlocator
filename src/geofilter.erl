@@ -75,6 +75,8 @@ neighbors_full(Hash) ->
   end.
   
 set(UserId, Lat, Lon, Precision, Options) ->
+  %% Delete user first, in order to avoid erroneous records in geonum sets due to the change of user's location.
+  geofilter:delete(UserId),
   %% Calculate geonum for immediate bounding box, and 8 surrounding boxes.
   {ok, UserGeonum} = geonum:encode(Lat, Lon, Precision),	
   Geonums3x3 = hashes3x3(UserGeonum),
