@@ -87,8 +87,8 @@ delete(UserId) ->
   case cmd(["GET", ?USER_KEY(UserId)]) of
 	undefined ->
 	  {error, not_found};
-	Hash ->
-	  HashInt = list_to_integer(binary_to_list(Hash)),
+    Data ->
+      HashInt = proplists:get_value("geonum", binary_to_term(Data)),
 	  {ok, AdjacentHashes} = geonum:neighbors(HashInt),
 	  Commands = lists:map(fun(H) -> ["ZREM", ?GEONUM_KEY(H), UserId] end, [HashInt | AdjacentHashes]),
 	  RemoveUserCommand = ["DEL", ?USER_KEY(UserId)],
