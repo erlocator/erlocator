@@ -32,45 +32,54 @@ loop(Req, DocRoot, AppParams) ->
     "/" ++ Path = Req:get(path),	
     case Req:get(method) of
         Method when Method =:= 'GET'; Method =:= 'HEAD' ->
-		  Params = Req:parse_qs(),
+            Params = Req:parse_qs(),
             case Path of
-              	"geo/neighbors" ->
-				 Hash = list_to_integer(proplists:get_value("geonum", Params)), 
-                 Req:ok({"application/json", [], 
-						 to_json(geofilter:neighbors_full(Hash))});
-			  "geo/bbox" ->
-				Hash = list_to_integer(proplists:get_value("geonum", Params)),
-				Req:ok({"application/json", [], 
-						 to_json({bbox, geofilter:bbox(Hash), geofilter:bbox_3x3(Hash)})});
-			  FilePath ->
-				case re:split(FilePath, ?FILE_REGEX) of
-				  [_, FileName] ->
-					Req:serve_file(binary_to_list(FileName), DocRoot);
-				  _Other ->
-					Req:not_found()
-				end
+                "geo/neighbors" ->
+                    Hash = list_to_integer(proplists:get_value("geonum", Params)), 
+                        Req:ok({"application/json", [], 
+                        to_json(geofilter:neighbors_full(Hash))});
+
+                "geo/bbox" ->
+                    Hash = list_to_integer(proplists:get_value("geonum", Params)),
+                        Req:ok({"application/json", [], 
+                        to_json({bbox, geofilter:bbox(Hash), geofilter:bbox_3x3(Hash)})});
+
+                FilePath ->
+
+                    case re:split(FilePath, ?FILE_REGEX) of
+                        [_, FileName] ->
+                            Req:serve_file(binary_to_list(FileName), DocRoot);
+
+                        _Other ->
+                            Req:not_found()
+                    end
             end;
+
         'POST' ->
-		    Params = Req:parse_post(),
+            Params = Req:parse_post(),
             case Path of
-			  "geo/set" ->
-				UserId = proplists:get_value("id", Params),
-				Lat = proplists:get_value("lat", Params),
-				Lon = proplists:get_value("lon", Params),
-				UserHash = geofilter:set(UserId, to_number(Lat), to_number(Lon), proplists:get_value(geonum_bits, AppParams), Params),
-				Req:respond({200,
-                       [{"Content-Type", "application/json"}],
-                       to_json({geonum, UserHash})});
-			  "geo/delete" ->
-				UserId = proplists:get_value("id", Params),
-				case geofilter:delete(UserId) of
-				  ok ->
-					Req:respond({200, [], []});
-				  {error, not_found} ->
-					Req:not_found();
-				  _Other ->
-					Req:respond({500, [], []})
-				end;
+                "geo/set" ->
+                    UserId = proplists:get_value("id", Params),
+                    Lat = proplists:get_value("lat", Params),
+                    Lon = proplists:get_value("lon", Params),
+                    UserHash = geofilter:set(UserId, to_number(Lat), to_number(Lon), proplists:get_value(geonum_bits, AppParams), Params),
+                    Req:respond({200,
+                        [{"Content-Type", "application/json"}],
+                        to_json({geonum, UserHash})});
+
+                "geo/delete" ->
+                    UserId = proplists:get_value("id", Params),
+                    case geofilter:delete(UserId) of
+                        ok ->
+                            Req:respond({200, [], []});
+
+                        {error, not_found} ->
+                            Req:not_found();
+
+                        _Other ->
+                            Req:respond({500, [], []})
+                    end;
+
                 _ ->
                     Req:not_found()
             end;
@@ -85,7 +94,7 @@ get_option(Option, Options) ->
 
 
 to_number(Num) when is_number(Num) ->
-  Num;
+    Num;
 
 to_number(Str) ->
     case string:to_float(Str) of
@@ -94,28 +103,29 @@ to_number(Str) ->
     end.
 
 to_json(Neighbors) when is_list(Neighbors) ->
-  json_utils:encode({struct, [{"neighbors", {array, lists:map(fun(N) -> {struct, N} end, Neighbors)}}]});
+    json_utils:encode({struct, [{"neighbors", {array, lists:map(fun(N) -> {struct, N} end, Neighbors)}}]});
 
 to_json({geonum, _Hash} = Data) ->
-  json_utils:encode({struct, [Data]});
+    json_utils:encode({struct, [Data]});
 
 to_json({bbox, Bbox, Bbox3x3}) ->
-  {{TopLeftLat, TopLeftLon}, {BottomRightLat, BottomRightLon}} = Bbox,
-  {{TopLeftLat3x3, TopLeftLon3x3}, {BottomRightLat3x3, BottomRightLon3x3}} = Bbox3x3,
-   
-  json_utils:encode(
-	{struct, [{"bbox",
-	{struct, [{"top_left", {struct, [{"lat", TopLeftLat}, {"lon", TopLeftLon}]}}, 
-							  {"bottom_right", {struct, [{"lat", BottomRightLat}, {"lon", BottomRightLon}]}}
-							 ]}},
-			  {"bbox_3x3",
-	{struct, [{"top_left", {struct, [{"lat", TopLeftLat3x3}, {"lon", TopLeftLon3x3}]}}, 
-							  {"bottom_right", {struct, [{"lat", BottomRightLat3x3}, {"lon", BottomRightLon3x3}]}}
-							 ]}}			  
-			  ]});
+    {{TopLeftLat, TopLeftLon}, {BottomRightLat, BottomRightLon}} = Bbox,
+    {{TopLeftLat3x3, TopLeftLon3x3}, {BottomRightLat3x3, BottomRightLon3x3}} = Bbox3x3,
+
+    json_utils:encode(
+        {struct, [
+            {"bbox", {struct, [
+                {"top_left", {struct, [{"lat", TopLeftLat}, {"lon", TopLeftLon}]}}, 
+                {"bottom_right", {struct, [{"lat", BottomRightLat}, {"lon", BottomRightLon}]}}
+            ]}},
+            {"bbox_3x3", {struct, [
+                {"top_left", {struct, [{"lat", TopLeftLat3x3}, {"lon", TopLeftLon3x3}]}}, 
+                {"bottom_right", {struct, [{"lat", BottomRightLat3x3}, {"lon", BottomRightLon3x3}]}}
+            ]}}			  
+        ]});
 
 to_json(_) ->
-  throw(unkonwn_json_type).
+    throw(unkonwn_json_type).
 
 %%
 %% Tests
