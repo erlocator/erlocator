@@ -1,5 +1,9 @@
-%% @author bokner
-%% @doc @todo Helper functions for geofilter app.
+%% @author Boris Okner <boris.okner@gmail.com>
+%% @author Josh Murphy <jmurphy@lostbitz.com>
+%% @author Christian Gribneau <christian@gribneau.net>
+%% @copyright 2013
+%% @todo Helper functions for geofilter app.
+
 -module(geofilter).
 
 -define(POOL_NAME, redis_pool).
@@ -49,10 +53,12 @@ start(Opts) ->
 	[?POOL_NAME, PoolSize, ChildMods, ChildMFA]},
         transient, 2000, supervisor, [cuesport | ChildMods]}).
 
+%% @doc Return bounding box coordinates for a single region.
 bbox(Hash) ->
     {ok, Bbox} = geonum:decode_bbox(Hash),
     Bbox.
 
+%% @doc Return bounding box coordinates for a 3x3 region.
 bbox_3x3(Hash) ->
     Hashes = hashes3x3(Hash),
     %% Take top left coordinate of north-west box and bottom right coordinate of south-east box
@@ -62,9 +68,11 @@ bbox_3x3(Hash) ->
     {_, BottomRight} = bbox(SE),
     {TopLeft, BottomRight}.
 
+%% @doc Return list of neighbors for a given hash.
 neighbors(Hash) ->
     cmd(["ZRANGE", ?GEONUM_KEY(Hash), 0, -1]).
 
+%% @doc Return list of neighbors with associated data for a hash.
 neighbors_full(Hash) ->
     case neighbors(Hash) of
         undefined ->
@@ -84,6 +92,7 @@ neighbors_full(Hash) ->
 	  end
   end.
 
+%% @doc Create record for a user at a given location.
 set(UserId, Lat, Lon, Precision, Options) ->
     %% Delete user first, in order to avoid erroneous records in geonum sets due to the change of user's location.
     geofilter:delete(UserId),
@@ -95,6 +104,7 @@ set(UserId, Lat, Lon, Precision, Options) ->
     spawn(fun() -> cmd([StoreUserCommand | Commands]) end),
     UserGeonum.
 
+%% @doc Remove records for a user.
 delete(UserId) ->
     case cmd(["GET", ?USER_KEY(UserId)]) of
         undefined ->
@@ -115,26 +125,28 @@ delete(UserId) ->
 cmd(Cmd) ->
     redo:cmd(cuesport:get_worker(?POOL_NAME), Cmd).
 
+%% @doc Return list of hashes for 3x3 region.
 hashes3x3(Hash) ->
     {ok, NeighborHashes} = geonum:neighbors(Hash),
     [Hash | NeighborHashes].
 
-%% Time in milliseconds
+%% @doc Time in milliseconds
 -spec ts() -> integer().
 ts() ->
     {Mega, Sec, Micro} = now(),
     Mega * 1000000000 + Sec * 1000 + erlang:round(Micro / 1000).
 
-%% Distance from the point {Lat, Lon} to the center of bounding box defined by Hash
+%% @doc Distance from the point {Lat, Lon} to the center of bounding box defined by Hash
 -spec distance(float(), float(), integer()) -> float(). 
 distance(Lat, Lon, Hash) ->
     {ok, {MidPointLat, MidPointLon} = _MidPoint} = geonum:decode(Hash),
     distance(Lat, Lon, MidPointLat, MidPointLon).
 
-%% Distance between two points (Haversine)
+%% @doc Distance between two points (Haversine)
 %% Reference to original code:
 %% http://pdincau.wordpress.com/2012/12/26/distance-between-two-points-on-earth-in-erlang-an-haversine-function-implementation/
-%% TOD: Move to NIF
+%% @end
+%% @todo  Move to NIF
 -spec distance(float(), float(), float(), float()) -> float().
 distance(Lat1, Lng1, Lat2, Lng2) ->
     Deg2rad = fun(Deg) -> math:pi()*Deg/180 end,
