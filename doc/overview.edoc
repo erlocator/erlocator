@@ -1,0 +1,55 @@
+@title erlocator
+@author Boris Okner <boris.okner@gmail.com>
+@author Josh Murphy <jmurphy@lostbitz.com>
+@author Christian Gribneau <christian@gribneau.net>
+
+The erlocator application was written for presentation at Erlang Factory San Francisco 2013.
+
+It can be used to expose nearby users browsing the same web site at the same time, but it was
+written primarily as a reference application to demonstrate the use of erlang to build a 
+practical feature.
+
+The architecture of the application is very simple. Erlang is used to handle http requests 
+and manage internal processes that take actions based on the request. Heavier processing is 
+done with  Natively Implemented Functions in C, and data is stored in Redis.
+
+We used Mochiweb to build the webserving capability, we used Redo for handling Redis, and we 
+implemented a numeric version of the GeoHash algorythm for aggregating geographic points in 
+regions within Redis to facilitate quick, easy retrieval of entries within close proximity 
+to one another.
+
+The numeric implementation of GeoHash pads a single large integer with 1 in the most 
+significant bit position and then adds bits of latitude and longitude until the desired 
+precision has been expressed.
+
+To avoid edge cases where the requested point is in an extremity of its region, we return a 
+grid of regions around a central region. This ensures that neighbors in all directions can 
+be found.
+
+The initial implementation returned a 3 x 3 grid of regions around the region requested, and 
+subsequent improvements will involve returning an arbitrarily sized grid of regions.
+
+It is important to note that this application was put together very quickly to demonstrate 
+the concepts. There has been no attention to security issues, and it should not be depiloyed 
+in such a fashion that it is directly accessible by clients. 
+
+
+
+<h3>MIT License</h3>
+Copyright (c) 2013 Boris Okner, Josh Murphy, Christian Gribneau
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
+and associated documentation files (the "Software"), to deal in the Software without 
+restriction, including without limitation the rights to use, copy, modify, merge, publish, 
+distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the 
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or 
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
