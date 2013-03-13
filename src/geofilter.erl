@@ -105,7 +105,7 @@ set1(UserId, Geonum, Lat, Lon, Options) ->
     geofilter:delete(UserId),
     Geonums3x3 = hashes3x3(Geonum),
     Commands = lists:map(fun(H) -> ["ZADD", ?GEONUM_KEY(H), float_to_list(distance(Lat, Lon, H)), UserId] end, Geonums3x3),
-    StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", Geonum} | Options])],
+    StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", Geonum} | proplists:delete("geonum", Options)])],
     spawn(fun() -> cmd([StoreUserCommand | Commands]) end).
 
 %% @doc Remove records for a user.
