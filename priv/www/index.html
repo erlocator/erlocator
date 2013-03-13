@@ -7,54 +7,78 @@
 	<title>Erlocator</title>
 	<meta name="description" content="Erlocator." />
 	<meta name="author" content="Erlocator Client">
-
+        
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link href="bootstrap.min.css" rel="stylesheet"/>
+        <link href="bootstrap-responsive.min.css" rel="stylesheet"/>
 	<link rel="shortcut icon" href="/favicon.ico" />
 </head>
 <body>
 <style>
     #clientform{
+        z-index: 1000;
+        position:absolute;
+        top:20px;
+        left:20px;
         width:200px;
         float:left;
     }
+    .mapwrap{
+        position: relative;
+        margin: 20px;
+        width : 100%;
+        height : 600px;
+
+        border: 1px solid blue;
+    }      
     #googlemap{
-        width : 744px;
-        height : 400px;
-    }
-</style>
-<div id="clientform">
-    <label>First Name</label><input id="first_name" type="text" value="guest"/>
-    <br/>
-    <label>Last Name</label><input id="last_name" type="text" value="guest"/>
-    <button id="updateinfo">Update Info</button>
-    <br/>
-    <button id="neighbors">Get Neighbors</button>
-    <button id="boundingbox">Get Bounding Box</button>
+        width : 100%;
+        height : 100%;
+    }      
+ html, body {
+height: 100%;
+}
+
+.wrapper {
+min-height: 100%;
+height: auto !important;
+height: 100%;
+margin: 0 auto -63px;
+}
+   
+</style>  
+ <div class="wrapper">
+<div class="container">
+<header>
+<h1>Erlocator Demo</h1>
+</header>
 </div>
-<div id="googlemap"></div>
-
-
+<div class="row">
+    <div class="span12 mapwrap">
+        <div id="googlemap"></div>  
+        <div id="clientform">
+            <label>First Name</label><input id="first_name" type="text" value="guest"/>  
+            <br/>
+            <label>Last Name</label><input id="last_name" type="text" value="guest"/>
+            <button id="updateinfo">Update Info</button>
+            <br/>
+            <button id="neighbors">Get Neighbors</button>
+            <button id="boundingbox">Get Bounding Box</button>
+        </div>
+    </div>
+</div>
+</div>
+    
 <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
 <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.3/jquery-ui.min.js"></script>
 <script type="text/javascript" src="//maps.googleapis.com/maps/api/js?key=AIzaSyBKDimjznrPHNMwq4H0hJ036LzP_UFpbdo&amp;sensor=true&amp;libraries=geometry"></script>
+<script type="text/javascript" src="bootstrap.min.js"></script>
 
-<div id="fb-root"></div>
-<script type="text/javascript">
-	window.fbAsyncInit = function() {
-		FB.init({appId: "247269135382525", status: true, cookie: true, xfbml: true});
-	};
-	(function() {
-		var e = document.createElement('script'); e.async = true;
-		e.src = document.location.protocol +
-		'//connect.facebook.net/en_US/all.js';
-		document.getElementById('fb-root').appendChild(e);
-}());
-</script>
-<!-- End Facebook -->
 <script>
 //identifier for the user
 var host = "http://xmpp3.dev.biglive.com:8000/";
 var client = {
+    geonum : "",
     id : Math.floor((Math.random()*10000)+1).toString(),
     first_name : "guest",
     last_name : "guest",
@@ -62,7 +86,7 @@ var client = {
     lon : -74
 };
  var data = {
-    geonum : "",
+    
     geocoder : "",
     boundingbox : "",
     map : "",
@@ -79,7 +103,7 @@ $(document).ready(function(){
                   placeMarker(client,true);
               }
         }, function() {
-
+             
         }, {maximumAge:30000, timeout: 2000});
     } else {
         // Browser doesn't support Geolocation
@@ -97,7 +121,7 @@ $(document).ready(function(){
                     mapOptions);
             data.map.setCenter(new google.maps.LatLng(client.lat,client.lon));
             data.map.setZoom(11);
-    }
+    } 
     $('#neighbors').click(function(){
         getNeighbors();
     });
@@ -118,7 +142,7 @@ $(document).ready(function(){
     });
     $('#first_name').val(client.first_name);
     $('#last_name').val(client.last_name);
-});
+});       
 
 function getNeighbors(){
     $.getJSON(host+'geo/neighbors',"geonum="+client.geonum,function(response){
@@ -147,7 +171,7 @@ function getBoundingBox(){
         var bound = new google.maps.LatLngBounds();
         bound.extend(new google.maps.LatLng(tleft.lat,tleft.lon));
         bound.extend(new google.maps.LatLng(bright.lat,bright.lon));
-
+        
         ne = bound.getNorthEast();
         sw = bound.getSouthWest();
         se = new google.maps.LatLng(sw.lat(),ne.lng());
@@ -175,7 +199,7 @@ function addClient(){
     //at a a minimum id, lat, lon must be provided
     $.post(host+'geo/set',client,
         function(obj) {
-            var response = jQuery.parseJSON(obj);
+            var response = $.parseJSON(obj);
             client.geonum = obj.geonum;
         }
     );
@@ -195,7 +219,7 @@ function placeMarker(obj,draggable){
     var infowindow = new google.maps.InfoWindow({
       content: el
     });
-
+   
     if(draggable){
         //Client
         var marker = new google.maps.Marker({
@@ -210,21 +234,18 @@ function placeMarker(obj,draggable){
               client.lat = pos.lat();
               client.lon = pos.lng();
               addClient();
+              if(data.bounding_box)data.bounding_box.setMap(null);
         });
     }else{
         //Neighbor
        var marker = new google.maps.Marker({
         position: new google.maps.LatLng(obj.lat, obj.lon),
         map: data.map
-    });
+       });  
     }
     google.maps.event.addListener(marker, 'click', function() {
         infowindow.open(data.map,marker);
-    });
-
-    google.maps.event.addListener(marker, 'click', function() {
-        infowindow.open(data.map,marker);
-    });
+    });    
 
     data.arrCurrentMarkers["m"+obj.id] = marker; //Add Marker to array
 }

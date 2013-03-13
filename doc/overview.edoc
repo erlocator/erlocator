@@ -3,7 +3,7 @@
 @author Josh Murphy <jmurphy@lostbitz.com>
 @author Christian Gribneau <christian@gribneau.net>
 
-The erlocator application was written for presentation at Erlang Factory San Francisco 2013.
+@doc The erlocator application was written for presentation at Erlang Factory San Francisco 2013.
 
 It can be used to expose nearby users browsing the same web site at the same time, but it was
 written primarily as a reference application to demonstrate the use of erlang to build a 
@@ -30,7 +30,7 @@ The initial implementation returned a 3 x 3 grid of regions around the region re
 subsequent improvements will involve returning an arbitrarily sized grid of regions.
 
 It is important to note that this application was put together very quickly to demonstrate 
-the concepts. There has been no attention to security issues, and it should not be depiloyed 
+the concepts. There has been no attention to security issues, and it should not be deployed 
 in such a fashion that it is directly accessible by clients. 
 
 
