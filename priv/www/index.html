@@ -17,34 +17,39 @@
 <style>
     #clientform{
         z-index: 1000;
+        border-radius: 5px;
         position:absolute;
         top:20px;
         left:20px;
-        width:200px;
+        width:220px;
+        padding:20px;
         float:left;
+        background : #ddd;
+        -moz-box-shadow: 10px 10px 5px #888;
+        -webkit-box-shadow: 10px 10px 5px #888;
+        box-shadow: 10px 10px 5px #888;
     }
     .mapwrap{
         position: relative;
         margin: 20px;
         width : 100%;
         height : 600px;
-
         border: 1px solid blue;
     }      
     #googlemap{
         width : 100%;
         height : 100%;
     }      
- html, body {
-height: 100%;
-}
+    html, body {
+        height: 100%;
+    }
 
-.wrapper {
-min-height: 100%;
-height: auto !important;
-height: 100%;
-margin: 0 auto -63px;
-}
+    .wrapper {
+        min-height: 100%;
+        height: auto !important;
+        height: 100%;
+        margin: 0 auto -63px;
+    }
    
 </style>  
  <div class="wrapper">
@@ -56,14 +61,14 @@ margin: 0 auto -63px;
 <div class="row">
     <div class="span12 mapwrap">
         <div id="googlemap"></div>  
-        <div id="clientform">
+        <div id="clientform" class="rounded_corners">
             <label>First Name</label><input id="first_name" type="text" value="guest"/>  
             <br/>
             <label>Last Name</label><input id="last_name" type="text" value="guest"/>
-            <button id="updateinfo">Update Info</button>
+            <button id="updateinfo" class="btn btn-inverse">Update Info</button>
             <br/>
-            <button id="neighbors">Get Neighbors</button>
-            <button id="boundingbox">Get Bounding Box</button>
+            <button id="neighbors" class="btn btn-inverse">Get Neighbors</button>
+            <button id="boundingbox" class="btn btn-inverse">Get Bounding Box</button>
         </div>
     </div>
 </div>
@@ -86,7 +91,6 @@ var client = {
     lon : -74
 };
  var data = {
-    
     geocoder : "",
     boundingbox : "",
     map : "",
@@ -149,8 +153,8 @@ function getNeighbors(){
         /*
          {"neighbors":[{"geonum":62914559,"id":"1501","lat":"90","lon":"90"},{"geonum":62914558,"id":"1502","lat":"90","lon":"90"}]}
          */
+         //clearMap();
          $.each(response.neighbors, function(index, neighbor) {
-             clearMap();
              if(neighbor.id != client.id){
                 if(typeof(neighbor.first_name) == "undefined")neighbor.first_name = "Neighbor ";
                 if(typeof(neighbor.last_name) == "undefined")neighbor.last_name = neighbor.id;
