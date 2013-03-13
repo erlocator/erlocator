@@ -71,7 +71,10 @@ bbox_3x3(Hash) ->
 
 %% @doc Return list of neighbors for a given hash.
 neighbors(Hash) ->
-    cmd(["ZRANGE", ?GEONUM_KEY(Hash), 0, -1]).
+  Commands = lists:map(fun(H) ->
+				["ZRANGE", ?GEONUM_KEY(H), 0, -1]
+					   end, hashes3x3(Hash)),
+    lists:flatten(cmd(Commands)).
 
 %% @doc Return list of neighbors with associated data for a hash.
 neighbors_full(Hash) ->
@@ -106,7 +109,7 @@ set1(UserId, Geonum, Lat, Lon, Options) ->
     Geonums3x3 = hashes3x3(Geonum),
     Commands = lists:map(fun(H) -> ["ZADD", ?GEONUM_KEY(H), float_to_list(distance(Lat, Lon, H)), UserId] end, Geonums3x3),
     StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", Geonum} | proplists:delete("geonum", Options)])],
-    spawn(fun() -> cmd([StoreUserCommand | Commands]) end).
+    spawn(fun() -> cmd([StoreUserCommand, ["ZADD", ?GEONUM_KEY(Geonum), float_to_list(distance(Lat, Lon, Geonum)), UserId]]) end).
 
 %% @doc Remove records for a user.
 delete(UserId) ->
@@ -115,10 +118,8 @@ delete(UserId) ->
             {error, not_found};
         Data ->
             HashInt = proplists:get_value("geonum", binary_to_term(Data)),
-            {ok, AdjacentHashes} = geonum:neighbors(HashInt),
-            Commands = lists:map(fun(H) -> ["ZREM", ?GEONUM_KEY(H), UserId] end, [HashInt | AdjacentHashes]),
             RemoveUserCommand = ["DEL", ?USER_KEY(UserId)],
-            spawn(fun() -> cmd([RemoveUserCommand | Commands]) end),
+            spawn(fun() -> cmd([RemoveUserCommand, ["ZREM", ?GEONUM_KEY(HashInt), UserId]]) end),
             ok
     end.
 
@@ -128,6 +129,7 @@ generate(GeoNum, undefined) ->
 
 generate(Geonum, Number) when is_integer(Number) ->
   {{MaxLat, MinLon}, {MinLat, MaxLon}} = bbox_3x3(Geonum),
+  random:seed(now()),
   lists:foreach(fun(_) ->
 					 Lat = random:uniform() * (MaxLat - MinLat) + MinLat,
 					 Lon = random:uniform() * (MaxLon - MinLon) + MinLon,
