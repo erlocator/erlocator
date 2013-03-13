@@ -80,10 +80,9 @@ loop(Req, DocRoot, AppParams) ->
                             Req:respond({500, [], []})
                     end;
 				"geo/generate" ->
-				     Lat = proplists:get_value("lat", Params),
-                     Lon = proplists:get_value("lon", Params),
+				     Geonum = proplists:get_value("geonum", Params),
 					 Number = proplists:get_value("n", Params),
-					 geofilter:generate(to_float(Lat), to_float(Lon), 
+					 geofilter:generate(list_to_integer(Geonum), 
 										case Number of 
 										  undefined ->
 											undefined;
