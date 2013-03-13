@@ -62,7 +62,7 @@ loop(Req, DocRoot, AppParams) ->
                     UserId = proplists:get_value("id", Params),
                     Lat = proplists:get_value("lat", Params),
                     Lon = proplists:get_value("lon", Params),
-                    UserHash = geofilter:set(UserId, to_number(Lat), to_number(Lon), proplists:get_value(geonum_bits, AppParams), Params),
+                    UserHash = geofilter:set(UserId, to_float(Lat), to_float(Lon), proplists:get_value(geonum_bits, AppParams), Params),
                     Req:respond({200,
                         [{"Content-Type", "application/json"}],
                         to_json({geonum, UserHash})});
@@ -79,7 +79,18 @@ loop(Req, DocRoot, AppParams) ->
                         _Other ->
                             Req:respond({500, [], []})
                     end;
-
+				"geo/generate" ->
+				     Lat = proplists:get_value("lat", Params),
+                     Lon = proplists:get_value("lon", Params),
+					 Number = proplists:get_value("n", Params),
+					 geofilter:generate(to_float(Lat), to_float(Lon), 
+										case Number of 
+										  undefined ->
+											undefined;
+										  N ->
+											list_to_integer(N)
+										end),
+					 Req:respond({200, [], []});					 
                 _ ->
                     Req:not_found()
             end;
@@ -93,10 +104,10 @@ get_option(Option, Options) ->
     {proplists:get_value(Option, Options), proplists:delete(Option, Options)}.
 
 
-to_number(Num) when is_number(Num) ->
+to_float(Num) when is_float(Num) ->
     Num;
 
-to_number(Str) ->
+to_float(Str) ->
     case string:to_float(Str) of
         {error,no_float} -> list_to_integer(Str)*1.0;
         {F,_Rest} -> F

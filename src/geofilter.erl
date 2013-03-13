@@ -5,6 +5,7 @@
 -define(POOL_NAME, redis_pool).
 -define(GEONUM_KEY(H), ["geonum:", integer_to_list(H)]).
 -define(USER_KEY(Id), ["geonum_user:", Id]).
+-define(DEFAULT_GEN_NUMBER, 100).
 %% ====================================================================
 %% API functions
 %% ====================================================================
@@ -85,15 +86,18 @@ neighbors_full(Hash) ->
   end.
 
 set(UserId, Lat, Lon, Precision, Options) ->
-    %% Delete user first, in order to avoid erroneous records in geonum sets due to the change of user's location.
-    geofilter:delete(UserId),
     %% Calculate geonum for immediate bounding box and 8 surrounding boxes.
-    {ok, UserGeonum} = geonum:encode(Lat, Lon, Precision),	
-    Geonums3x3 = hashes3x3(UserGeonum),
+    {ok, UserGeonum} = geonum:encode(Lat, Lon, Precision),
+	set1(UserId, UserGeonum, Lat, Lon, Options),
+	UserGeonum.
+
+set1(UserId, Geonum, Lat, Lon, Options) ->								  
+	%% Delete user first, in order to avoid erroneous records in geonum sets due to the change of user's location.
+    geofilter:delete(UserId),
+    Geonums3x3 = hashes3x3(Geonum),
     Commands = lists:map(fun(H) -> ["ZADD", ?GEONUM_KEY(H), float_to_list(distance(Lat, Lon, H)), UserId] end, Geonums3x3),
-    StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", UserGeonum} | Options])],
-    spawn(fun() -> cmd([StoreUserCommand | Commands]) end),
-    UserGeonum.
+    StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", Geonum} | Options])],
+    spawn(fun() -> cmd([StoreUserCommand | Commands]) end).
 
 delete(UserId) ->
     case cmd(["GET", ?USER_KEY(UserId)]) of
@@ -108,6 +112,18 @@ delete(UserId) ->
             ok
     end.
 
+%% Generate random records within given geonum area.
+generate(GeoNum, undefined) ->
+  generate(GeoNum, ?DEFAULT_GEN_NUMBER);
+
+generate(Geonum, Number) when is_integer(Number) ->
+  {{MaxLat, MinLon}, {MinLat, MaxLon}} = bbox_3x3(Geonum),
+  Base = random:uniform(10000),
+  lists:foreach(fun(_) ->
+					 Lat = random:uniform(random:uniform() * (MaxLat - MinLat) + MinLat),
+					 Lon = random:uniform(random:uniform() * (MaxLon - MinLon) + MinLon),
+					 add_neighbor("neighbor_" ++ integer_to_list(Base + random:uniform(Number)), Geonum, Lat, Lon)
+				end, lists:seq(1, Number)).
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
@@ -134,7 +150,7 @@ distance(Lat, Lon, Hash) ->
 %% Distance between two points (Haversine)
 %% Reference to original code:
 %% http://pdincau.wordpress.com/2012/12/26/distance-between-two-points-on-earth-in-erlang-an-haversine-function-implementation/
-%% TOD: Move to NIF
+%% TODO: Move to NIF
 -spec distance(float(), float(), float(), float()) -> float().
 distance(Lat1, Lng1, Lat2, Lng2) ->
     Deg2rad = fun(Deg) -> math:pi()*Deg/180 end,
@@ -150,4 +166,9 @@ distance(Lat1, Lng1, Lat2, Lng2) ->
     %% suppose radius of Earth is 6372.8 km
     Km = 6372.8 * C,
     Km.
-
+%%
+%% Helper function for generating neighbors
+%%
+-spec add_neighbor(string(), integer(), float(), float()) -> any().		
+add_neighbor(NeighborId, Geonum, Lat, Lon) ->
+  set1(NeighborId, Geonum, Lat, Lon, []).
