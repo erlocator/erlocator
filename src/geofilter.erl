@@ -128,11 +128,10 @@ generate(GeoNum, undefined) ->
 
 generate(Geonum, Number) when is_integer(Number) ->
   {{MaxLat, MinLon}, {MinLat, MaxLon}} = bbox_3x3(Geonum),
-  Base = random:uniform(10000),
   lists:foreach(fun(_) ->
-					 Lat = random:uniform(random:uniform() * (MaxLat - MinLat) + MinLat),
-					 Lon = random:uniform(random:uniform() * (MaxLon - MinLon) + MinLon),
-					 add_neighbor("neighbor_" ++ integer_to_list(Base + random:uniform(Number)), Geonum, Lat, Lon)
+					 Lat = random:uniform() * (MaxLat - MinLat) + MinLat,
+					 Lon = random:uniform() * (MaxLon - MinLon) + MinLon,
+					 add_neighbor("neighbor_" ++ integer_to_list(random:uniform(10000000)), Geonum, Lat, Lon)
 				end, lists:seq(1, Number)).
 %% ====================================================================
 %% Internal functions
@@ -183,4 +182,4 @@ distance(Lat1, Lng1, Lat2, Lng2) ->
 %%
 -spec add_neighbor(string(), integer(), float(), float()) -> any().		
 add_neighbor(NeighborId, Geonum, Lat, Lon) ->
-  set1(NeighborId, Geonum, Lat, Lon, []).
+  set1(NeighborId, Geonum, Lat, Lon, [{"id", NeighborId}, {"lat", Lat}, {"lon", Lon}, {"first_name", NeighborId}, {"last_name", "neighbor"}]).
