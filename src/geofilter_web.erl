@@ -156,16 +156,16 @@ to_float(Str) ->
     end.
 
 to_json(Neighbors) when is_list(Neighbors) ->
-    json_utils:encode({struct, [{"neighbors", {array, lists:map(fun(N) -> {struct, N} end, Neighbors)}}]});
+    mochijson:encode({struct, [{"neighbors", {array, lists:map(fun(N) -> {struct, N} end, Neighbors)}}]});
 
 to_json({geonum, _Hash} = Data) ->
-    json_utils:encode({struct, [Data]});
+    mochijson:encode({struct, [Data]});
 
 to_json({bbox, Bbox, Bbox3x3}) ->
     {{TopLeftLat, TopLeftLon}, {BottomRightLat, BottomRightLon}} = Bbox,
     {{TopLeftLat3x3, TopLeftLon3x3}, {BottomRightLat3x3, BottomRightLon3x3}} = Bbox3x3,
 
-    json_utils:encode(
+    mochijson:encode(
         {struct, [
             {"bbox", {struct, [
                 {"top_left", {struct, [{"lat", TopLeftLat}, {"lon", TopLeftLon}]}}, 
