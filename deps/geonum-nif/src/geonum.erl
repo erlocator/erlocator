@@ -25,7 +25,8 @@
     decode_bbox/1,
     encode/3,
     neighbor/2,
-    neighbors/1
+    neighbors/1,
+	precision/1
 ]).
 
 -on_load(init/0).
@@ -53,6 +54,11 @@ neighbor(_GeoNum, _Direction) ->
 %% @doc Get all neighbors of binary geonum
 -spec neighbors(binary()) -> [binary()].
 neighbors(_GeoNum) ->
+    exit(geonum_nif_not_loaded).
+
+%% @doc Get precision (number of significant bits) of binary geonum
+-spec precision(binary()) -> [binary()].
+precision(_GeoNum) ->
     exit(geonum_nif_not_loaded).
 
 %% @private

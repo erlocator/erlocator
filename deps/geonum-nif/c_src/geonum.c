@@ -178,6 +178,26 @@ geonum_decode(long long geonum, double * point)
     point[1] = (top[1] + bottom[1]) / 2;
 }
 
+/**
+ * Given the geonum value, find the bit precision
+ */
+void geonum_precision(long long geonum, int * precision) {
+	int p = 0;
+	int i;
+	for (i = 0; i < GEONUM_MAX; ++) {
+		if (geonum == 0) {
+			p = -1;
+			break;
+		}
+		if (geonum == 1) {
+			break;
+		} else {
+			geonum = geonum >> 1;
+			p++;
+		}
+	}
+	precision[0] = p;
+}
 
 void geonum_neighbor(long long geonum, int direction, long long * neighbor) {
     // 0 - w, 1 - e, 2 - n, 3 - s
@@ -358,6 +378,24 @@ erl_geonum_decode(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     return make_ok(env, point_tuple);
 }
 
+/**
+ * Erlang Wrapper for geonum_precision
+ */
+ERL_NIF_TERM
+erl_geonum_precision(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    int[1] precision;
+    long long geonum;
+
+    if(!enif_get_int64(env, argv[0], &geonum)) {
+        return enif_make_badarg(env);
+    }
+
+    geonum_precision(geonum, precision);
+
+    return make_ok(env, enif_make_int(env, precision[0]));
+}
+
 
 /**
  * Erlang Wrapper for  geonum_neighbor
@@ -466,7 +504,8 @@ static ErlNifFunc nif_functions[] = {
     {"decode", 1, erl_geonum_decode},
     {"neighbor", 2, erl_geonum_neighbor},
     {"neighbors", 1, erl_geonum_all_neighbors},
-    {"decode_bbox", 1, erl_geonum_decode_bbox}
+    {"decode_bbox", 1, erl_geonum_decode_bbox},
+    {"precision", 1, erl_geonum_precision}
 };
 
 ERL_NIF_INIT(geonum, nif_functions, &on_load, &on_reload, &on_upgrade, NULL);
