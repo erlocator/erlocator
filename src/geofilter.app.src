@@ -1,3 +1,8 @@
+%% @author Boris Okner <boris.okner@gmail.com>
+%% @author Josh Murphy <jmurphy@lostbitz.com>
+%% @author Christian Gribneau <christian@gribneau.net>
+%% @copyright 2013
+
 {application, geofilter, [
     {description, "geofilter"},
         {vsn, "0.01"},

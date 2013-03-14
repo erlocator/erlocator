@@ -1,3 +1,6 @@
+%% @author Boris Okner <boris.okner@gmail.com>
+%% @copyright 2010
+
 %%-------------------------------------------------------------------
 %%% Copyright 2010 Cleartext
 %%% Author  : Boris Okner <boris.okner@gmail.com>

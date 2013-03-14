@@ -1,11 +1,7 @@
-%%% -------------------------------------------------------------------
-%%%
-%%% Copyright	: 2011, The Big Live, Inc.
-%%%
-%%% -------------------------------------------------------------------
-
-%% @author author <author@example.com>
-%% @copyright YYYY author.
+%% @author Boris Okner <boris.okner@gmail.com>
+%% @author Josh Murphy <jmurphy@lostbitz.com>
+%% @author Christian Gribneau <christian@gribneau.net>
+%% @copyright 2013
 
 %% @doc Ensure that the relatively-installed dependencies are on the code
 %%      loading path, and locate resources relative
