@@ -43,13 +43,27 @@ stop() ->
 %%
 %%   geo/bbox
 %%
-%%     Return neighbors near a specified location.
-%% 
+%%     Return neighbors near a specified location. 
 %%
 %%   Files
 %%
 %%     Return files comprising the demo application.
 %% 
+%%
+%% POST
+%% 
+%%   geo/set
+%%
+%%     Set a user location.
+%%
+%%   geo/delete
+%%
+%%     Delete a user location.
+%%
+%%   geo/generate
+%%
+%%     Create n neighbors around a point.
+%%
 %% @end
 loop(Req, DocRoot, AppParams) ->
     "/" ++ Path = Req:get(path),	
@@ -68,7 +82,6 @@ loop(Req, DocRoot, AppParams) ->
                         to_json({bbox, geofilter:bbox(Hash), geofilter:bbox_3x3(Hash)})});
 
                 FilePath ->
-
                     case re:split(FilePath, ?FILE_REGEX) of
                         [_, FileName] ->
                             Req:serve_file(binary_to_list(FileName), DocRoot);
@@ -102,22 +115,29 @@ loop(Req, DocRoot, AppParams) ->
                         _Other ->
                             Req:respond({500, [], []})
                     end;
-				"geo/generate" ->
-				     Geonum = proplists:get_value("geonum", Params),
-					 Number = proplists:get_value("n", Params),
-					 geofilter:generate(list_to_integer(Geonum), 
-										case Number of 
-										  undefined ->
-											undefined;
-										  N ->
-											list_to_integer(N)
-										end),
-					 Req:respond({200, [], []});					 
+
+                "geo/generate" ->
+                    Geonum = proplists:get_value("geonum", Params),
+                    Number = proplists:get_value("n", Params),
+                    geofilter:generate(list_to_integer(Geonum), 
+                    case Number of 
+                        undefined ->
+                            undefined;
+
+                        N ->
+                            list_to_integer(N)
+
+                    end),
+                    Req:respond({200, [], []});
+					 
                 _ ->
                     Req:not_found()
+
             end;
+
         _ ->
             Req:respond({501, [], []})
+
     end.
 
 %% Internal API
