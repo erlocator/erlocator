@@ -9,6 +9,7 @@
 -define(POOL_NAME, redis_pool).
 -define(GEONUM_KEY(H), ["geonum:", integer_to_list(H)]).
 -define(USER_KEY(Id), ["geonum_user:", Id]).
+-define(DEFAULT_GEN_NUMBER, 100).
 %% ====================================================================
 %% API functions
 %% ====================================================================
@@ -70,7 +71,10 @@ bbox_3x3(Hash) ->
 
 %% @doc Return list of neighbors for a given hash.
 neighbors(Hash) ->
-    cmd(["ZRANGE", ?GEONUM_KEY(Hash), 0, -1]).
+  Commands = lists:map(fun(H) ->
+				["ZRANGE", ?GEONUM_KEY(H), 0, -1]
+					   end, hashes3x3(Hash)),
+    lists:flatten(cmd(Commands)).
 
 %% @doc Return list of neighbors with associated data for a hash.
 neighbors_full(Hash) ->
@@ -94,15 +98,18 @@ neighbors_full(Hash) ->
 
 %% @doc Create record for a user at a given location.
 set(UserId, Lat, Lon, Precision, Options) ->
-    %% Delete user first, in order to avoid erroneous records in geonum sets due to the change of user's location.
-    geofilter:delete(UserId),
     %% Calculate geonum for immediate bounding box and 8 surrounding boxes.
-    {ok, UserGeonum} = geonum:encode(Lat, Lon, Precision),	
-    Geonums3x3 = hashes3x3(UserGeonum),
+    {ok, UserGeonum} = geonum:encode(Lat, Lon, Precision),
+	set1(UserId, UserGeonum, Lat, Lon, Options),
+	UserGeonum.
+
+set1(UserId, Geonum, Lat, Lon, Options) ->								  
+	%% Delete user first, in order to avoid erroneous records in geonum sets due to the change of user's location.
+    geofilter:delete(UserId),
+    Geonums3x3 = hashes3x3(Geonum),
     Commands = lists:map(fun(H) -> ["ZADD", ?GEONUM_KEY(H), float_to_list(distance(Lat, Lon, H)), UserId] end, Geonums3x3),
-    StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", UserGeonum} | Options])],
-    spawn(fun() -> cmd([StoreUserCommand | Commands]) end),
-    UserGeonum.
+    StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", Geonum} | proplists:delete("geonum", Options)])],
+    spawn(fun() -> cmd([StoreUserCommand, ["ZADD", ?GEONUM_KEY(Geonum), float_to_list(distance(Lat, Lon, Geonum)), UserId]]) end).
 
 %% @doc Remove records for a user.
 delete(UserId) ->
@@ -111,13 +118,23 @@ delete(UserId) ->
             {error, not_found};
         Data ->
             HashInt = proplists:get_value("geonum", binary_to_term(Data)),
-            {ok, AdjacentHashes} = geonum:neighbors(HashInt),
-            Commands = lists:map(fun(H) -> ["ZREM", ?GEONUM_KEY(H), UserId] end, [HashInt | AdjacentHashes]),
             RemoveUserCommand = ["DEL", ?USER_KEY(UserId)],
-            spawn(fun() -> cmd([RemoveUserCommand | Commands]) end),
+            spawn(fun() -> cmd([RemoveUserCommand, ["ZREM", ?GEONUM_KEY(HashInt), UserId]]) end),
             ok
     end.
 
+%% Generate random records within given geonum area.
+generate(GeoNum, undefined) ->
+  generate(GeoNum, ?DEFAULT_GEN_NUMBER);
+
+generate(Geonum, Number) when is_integer(Number) ->
+  {{MaxLat, MinLon}, {MinLat, MaxLon}} = bbox_3x3(Geonum),
+  random:seed(now()),
+  lists:foreach(fun(_) ->
+					 Lat = random:uniform() * (MaxLat - MinLat) + MinLat,
+					 Lon = random:uniform() * (MaxLon - MinLon) + MinLon,
+					 add_neighbor("neighbor_" ++ integer_to_list(random:uniform(10000000)), Geonum, Lat, Lon)
+				end, lists:seq(1, Number)).
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
@@ -162,4 +179,9 @@ distance(Lat1, Lng1, Lat2, Lng2) ->
     %% suppose radius of Earth is 6372.8 km
     Km = 6372.8 * C,
     Km.
-
+%%
+%% Helper function for generating neighbors
+%%
+-spec add_neighbor(string(), integer(), float(), float()) -> any().		
+add_neighbor(NeighborId, Geonum, Lat, Lon) ->
+  set1(NeighborId, Geonum, Lat, Lon, [{"id", NeighborId}, {"lat", Lat}, {"lon", Lon}, {"first_name", NeighborId}, {"last_name", "neighbor"}]).
