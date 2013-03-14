@@ -184,7 +184,7 @@ geonum_decode(long long geonum, double * point)
 void geonum_precision(long long geonum, int * precision) {
 	int p = 0;
 	int i;
-	for (i = 0; i < GEONUM_MAX; ++) {
+	for (i = 0; i < GEONUM_MAX; i++) {
 		if (geonum == 0) {
 			p = -1;
 			break;
@@ -384,7 +384,7 @@ erl_geonum_decode(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 ERL_NIF_TERM
 erl_geonum_precision(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    int[1] precision;
+    int precision[1];
     long long geonum;
 
     if(!enif_get_int64(env, argv[0], &geonum)) {
