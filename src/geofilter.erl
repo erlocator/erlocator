@@ -130,7 +130,7 @@ generate(GeoNum, undefined) ->
 generate(Geonum, Number) when is_integer(Number) ->
   {{MaxLat, MinLon}, {MinLat, MaxLon}} = bbox_3x3(Geonum),
   random:seed(now()),
-  Precision = geonum:precision(Geonum),
+  {ok, Precision} = geonum:precision(Geonum),
   lists:foreach(fun(_) ->
 					 Lat = random:uniform() * (MaxLat - MinLat) + MinLat,
 					 Lon = random:uniform() * (MaxLon - MinLon) + MinLon,
