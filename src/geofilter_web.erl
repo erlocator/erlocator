@@ -1,5 +1,8 @@
-%% @author author <author@example.com>
-%% @copyright YYYY author.
+%% @author Boris Okner <boris.okner@gmail.com>
+%% @author Josh Murphy <jmurphy@lostbitz.com>
+%% @author Christian Gribneau <christian@gribneau.net>
+%% @copyright 2013
+
 
 %% @doc Web server for geofilter.
 
@@ -15,6 +18,7 @@
 
 %% External API
 
+%% @doc Start the geofilter webserver.
 start(Options) ->
     {DocRoot, Options1} = get_option(docroot, Options),
 	AppParams = application:get_all_env(geofilter),
@@ -25,9 +29,28 @@ start(Options) ->
 	spawn(fun() -> geofilter:start(AppParams) end),
     mochiweb_http:start([{name, ?MODULE}, {loop, Loop} | Options1]).
 
+%% @doc Stop the geofilter webserver.
 stop() ->
     mochiweb_http:stop(?MODULE).
 
+%% @doc Handle requests to the geofilter webserver.
+%% 
+%% GET
+%%
+%%   geo/neighbors
+%%
+%%     Return neighbors near a specified location.
+%%
+%%   geo/bbox
+%%
+%%     Return neighbors near a specified location.
+%% 
+%%
+%%   Files
+%%
+%%     Return files comprising the demo application.
+%% 
+%% @end
 loop(Req, DocRoot, AppParams) ->
     "/" ++ Path = Req:get(path),	
     case Req:get(method) of
