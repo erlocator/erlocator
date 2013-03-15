@@ -12,6 +12,10 @@
         <link href="bootstrap.min.css" rel="stylesheet"/>
         <link href="bootstrap-responsive.min.css" rel="stylesheet"/>
 	<link rel="shortcut icon" href="/favicon.ico" />
+        <script type="text/javascript" src="https://getfirebug.com/firebug-lite-debug.js">{
+            overrideConsole: false,
+            startOpened: false
+        }</script>
 </head>
 <body>
 <style>
@@ -128,6 +132,7 @@
 <script type="text/javascript" src="//maps.googleapis.com/maps/api/js?key=AIzaSyBKDimjznrPHNMwq4H0hJ036LzP_UFpbdo&amp;sensor=true&amp;libraries=geometry"></script>
 
 
+
 <script>
 //identifier for the user
 var host = "http://xmpp3.dev.biglive.com:8000/";
@@ -143,6 +148,7 @@ var client = {
     geocoder : "",
     boundingbox : "",
     map : "",
+    clientinfo : "",
     arrCurrentMarkers : []
 };
 $(document).ready(function(){
@@ -308,8 +314,12 @@ function placeMarker(obj,draggable){
             position: new google.maps.LatLng(obj.lat, obj.lon),
             map: data.map
          });
-
+         //show the infowindow with the new data
+         data.clientinfo = infowindow;
+         data.clientinfo.open(data.map,marker);
+         setTimeout(function () { data.clientinfo.close(); }, 2000);
          google.maps.event.addListener(marker, 'dragend', function() {
+             if(data.clientinfo)data.clientinfo.close();
               var pos = marker.getPosition();
               client.lat = pos.lat();
               client.lon = pos.lng();
