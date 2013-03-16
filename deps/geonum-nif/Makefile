@@ -7,7 +7,5 @@ clean:
 	$(REBAR) clean
 
 eunit:
-	@$(REBAR) eunit
-
-tests: clean deps/proper eunit
+	$(REBAR) eunit
 
