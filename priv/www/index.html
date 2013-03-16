@@ -100,6 +100,42 @@
         border-radius: 4px;
     }
 </style>  
+<script>
+window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '592913787405415', // App ID
+      channelUrl : '//erlocator.org/geonum/demo/fb-channel.html', // Channel File
+      status     : true, // check login status
+      cookie     : true, // enable cookies to allow the server to access the session
+      xfbml      : true  // parse XFBML
+    });
+    // Additional init code here
+};
+
+// Load the SDK Asynchronously
+(function(d){
+     var js, id = 'facebook-jssdk', ref = d.getElementsByTagName('script')[0];
+     if (d.getElementById(id)) {return;}
+     js = d.createElement('script'); js.id = id; js.async = true;
+     js.src = "//connect.facebook.net/en_US/all.js";
+     ref.parentNode.insertBefore(js, ref);
+}(document));
+
+function fblogin() {
+    FB.login(function(response) {
+        if (response.authResponse) {
+            // connected - get user information
+            FB.api('/me', function(response) {
+                $("#first_name").attr("value", response.name);
+                $("#profile_link").attr("value", "//facebook.com/" + response.id);
+                $("#avatar").attr("value", "//graph.facebook.com/" + response.id + "/picture");
+            });
+        } else {
+            // cancelled - do nothing
+        }
+    });
+}
+</script>
  <div class="wrapper">
 <div class="container">
 <header>
@@ -110,9 +146,12 @@
     <div class="span12 mapwrap">
         <div id="googlemap"></div>  
         <div id="clientform" class="rounded_corners">
-            <label>First Name</label><input id="first_name" type="text" value="guest"/>  
+            <button id="facebooklogin" class="btn btn-info">FB Login</button>
+            <label>Name</label><input id="first_name" type="text" value="guest"/>  
             <br/>
             <label>Last Name</label><input id="last_name" type="text" value="guest"/>
+            <label>Image</label><input id="avatar" type="text" value="guest"/>
+            <label>Profile URL</label><input id="profile_link" type="text" value="guest"/>
             <button id="updateinfo" class="btn btn-info">Update Info</button>
             <button id="neighbors" class="btn btn-info">Get Neighbors</button>
             <button id="boundingbox" class="btn btn-info">Get Bounding Box</button>
@@ -135,7 +174,7 @@
 
 <script>
 //identifier for the user
-var host = "http://xmpp3.dev.biglive.com:8000/";
+var host = "http://erlocator.org/";
 var client = {
     geonum : "",
     id : Math.floor((Math.random()*10000)+1).toString(),
@@ -184,12 +223,18 @@ $(document).ready(function(){
         // Browser doesn't support Geolocation
     }
     
+    $('#facebooklogin').click(function(){
+        fblogin();
+    });
+
     $('#neighbors').click(function(){
         getNeighbors();
     });
+
     $('#genneighbors').click(function(){
         generateNeighbors();
     });
+
     $("#numneighbors div").slider({
         range: "max",
         min: 1,
@@ -199,9 +244,11 @@ $(document).ready(function(){
             $( "#genneighbors span" ).text( ui.value );
         }
     });
+
     $('#clearmap').click(function(){
         clearMap();
-    });    
+    }); 
+   
     $('#boundingbox').click(function(){
         if( $('#boundingbox').text()=="Get Bounding Box"){
             getBoundingBox();
