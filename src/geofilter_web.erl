@@ -129,7 +129,9 @@ loop(Req, DocRoot, AppParams) ->
 
                     end),
                     Req:respond({200, [], []});
-					 
+			  "geo/flushall" ->
+					geofilter:flushall(),
+					Req:respond({200, [], []});										 
                 _ ->
                     Req:not_found()
 

@@ -8,14 +8,17 @@
 
 -define(POOL_NAME, redis_pool).
 -define(GEONUM_KEY(H), ["geonum:", integer_to_list(H)]).
+-define(GEONUM_EXPIRE, "geonum_expire").
 -define(USER_KEY(Id), ["geonum_user:", Id]).
 -define(DEFAULT_GEN_NUMBER, 100).
+-define(DEFAULT_EXPIRATION, 1800000). %% # of milliseconds in 30 mins
 %% ====================================================================
 %% API functions
 %% ====================================================================
 -export([start/1]).
 -export([bbox/1, bbox_3x3/1, neighbors/1, neighbors_full/1, set/5, delete/1]).
 -export([generate/2]).
+-export([flushall/0]).
 -export([start/0, stop/0]).
 
 ensure_started(App) ->
@@ -115,7 +118,10 @@ set1(UserId, Geonum, Lat, Lon, Options) ->
 	%% Delete user first, in order to avoid erroneous records in geonum sets due to the change of user's location.
     geofilter:delete(UserId),
     StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", Geonum} | proplists:delete("geonum", Options)])],
-    spawn(fun() -> cmd([StoreUserCommand, ["ZADD", ?GEONUM_KEY(Geonum), float_to_list(distance(Lat, Lon, Geonum)), UserId]]) end).
+    spawn(fun() -> cmd([StoreUserCommand, 
+						["ZADD", ?GEONUM_KEY(Geonum), float_to_list(distance(Lat, Lon, Geonum)), UserId],
+					    ["ZADD", ?GEONUM_EXPIRE, ts(), UserId]
+					   ]) end).
 
 %% @doc Remove records for a user.
 -spec delete(string()) -> ok | {error, not_found}.		
@@ -126,9 +132,25 @@ delete(UserId) ->
         Data ->
             HashInt = proplists:get_value("geonum", binary_to_term(Data)),
             RemoveUserCommand = ["DEL", ?USER_KEY(UserId)],
-            spawn(fun() -> cmd([RemoveUserCommand, ["ZREM", ?GEONUM_KEY(HashInt), UserId]]) end),
+            spawn(fun() -> cmd([RemoveUserCommand, 
+								["ZREM", ?GEONUM_KEY(HashInt), UserId],
+								["ZREM", ?GEONUM_EXPIRE, UserId]
+							   ]) end),
             ok
     end.
+
+%% @doc Clean up expired records
+-spec cleanup_expired() -> ok.
+cleanup_expired() ->
+  Expired = cmd(["ZRANGEBYSCORE", ?GEONUM_EXPIRE, 0, ts() - ?DEFAULT_EXPIRATION]),
+  lists:foreach(fun(User) ->
+					 geofilter:delete(User)
+				end, Expired).
+
+%% @doc Wipe out all records.
+-spec flushall() -> any().		
+flushall() ->
+  cmd(["FLUSHALL"]).
 
 %% @doc Generate random records within given geonum area.
 -spec generate(integer(), integer() | undefined) -> ok.
@@ -189,3 +211,9 @@ distance(Lat1, Lng1, Lat2, Lng2) ->
 -spec add_neighbor(string(), integer(), float(), float()) -> any().		
 add_neighbor(NeighborId, Geonum, Lat, Lon) ->
   set1(NeighborId, Geonum, Lat, Lon, [{"id", NeighborId}, {"lat", Lat}, {"lon", Lon}, {"first_name", NeighborId}, {"last_name", "neighbor"}]).
+
+%% Time in milliseconds
+-spec ts() -> integer().
+ts() ->
+  {Mega, Sec, Micro} = now(),
+  Mega * 1000000000 + Sec * 1000 + erlang:round(Micro / 1000).
