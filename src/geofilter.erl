@@ -18,7 +18,7 @@
 -export([start/1]).
 -export([bbox/1, bbox_3x3/1, neighbors/1, neighbors_full/1, set/5, delete/1]).
 -export([generate/2]).
--export([flushall/0]).
+-export([cleanup_expired/0, flushall/0]).
 -export([start/0, stop/0]).
 
 ensure_started(App) ->
