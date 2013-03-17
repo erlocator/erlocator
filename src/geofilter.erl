@@ -2,7 +2,7 @@
 %% @author Josh Murphy <jmurphy@lostbitz.com>
 %% @author Christian Gribneau <christian@gribneau.net>
 %% @copyright 2013
-%% @todo Helper functions for geofilter app.
+%% @doc Helper functions for geofilter app.
 
 -module(geofilter).
 

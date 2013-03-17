@@ -1,4 +1,3 @@
 {application,geofilter}.
 {packages,[]}.
-{modules,[geofilter,geofilter_app,geofilter_deps,geofilter_sup,geofilter_web,
-          json_utils]}.
+{modules,[geofilter,geofilter_app,geofilter_deps,geofilter_sup,geofilter_web]}.
