@@ -15,9 +15,8 @@
 %% ====================================================================
 -export([start/1]).
 -export([bbox/1, bbox_3x3/1, neighbors/1, neighbors_full/1, set/5, delete/1]).
+-export([generate/2]).
 -export([start/0, stop/0]).
-
--compile(export_all).
 
 ensure_started(App) ->
     case application:start(App) of
@@ -27,21 +26,24 @@ ensure_started(App) ->
             ok
     end.
 
-%% @spec start() -> ok
-%% @doc Start the geofilter server.
+
+%% @doc Start the geofilter application.
+-spec start() -> ok.
 start() ->
     geofilter_deps:ensure(),
     ensure_started(crypto),
     application:start(geofilter).
 
-%% @spec stop() -> ok
-%% @doc Stop the geofilter server.
+
+%% @doc Stop the geofilter application.
+-spec stop() -> ok.
 stop() ->
     Res = application:stop(geofilter),
     application:stop(crypto),
     Res.
 
-
+%% @doc Start supervisor children for geofilter (currently redis client with the pool support)
+-spec start(list()) -> any().		
 start(Opts) ->
     PoolSize = proplists:get_value(redis_pool_size, Opts, 10),
     RedoOpts = [{host, proplists:get_value(redis_host, Opts, [])}, {port, proplists:get_value(redis_port, Opts, [])}],
@@ -55,11 +57,13 @@ start(Opts) ->
         transient, 2000, supervisor, [cuesport | ChildMods]}).
 
 %% @doc Return bounding box coordinates for a single region.
+-spec bbox(integer()) -> {tuple(), tuple()}.		
 bbox(Hash) ->
     {ok, Bbox} = geonum:decode_bbox(Hash),
     Bbox.
 
 %% @doc Return bounding box coordinates for a 3x3 region.
+-spec bbox_3x3(integer()) -> {tuple(), tuple()}.
 bbox_3x3(Hash) ->
     Hashes = hashes3x3(Hash),
     %% Take top left coordinate of north-west box and bottom right coordinate of south-east box
@@ -70,6 +74,7 @@ bbox_3x3(Hash) ->
     {TopLeft, BottomRight}.
 
 %% @doc Return list of neighbors for a given hash.
+-spec neighbors(integer()) -> list().
 neighbors(Hash) ->
   Commands = lists:map(fun(H) ->
 				["ZRANGE", ?GEONUM_KEY(H), 0, -1]
@@ -77,6 +82,7 @@ neighbors(Hash) ->
     lists:flatten(cmd(Commands)).
 
 %% @doc Return list of neighbors with associated data for a hash.
+-spec neighbors_full(integer()) -> list().
 neighbors_full(Hash) ->
     case neighbors(Hash) of
         undefined ->
@@ -97,21 +103,22 @@ neighbors_full(Hash) ->
   end.
 
 %% @doc Create record for a user at a given location.
+-spec set(string(), float(), float(), integer(), list()) -> integer().
 set(UserId, Lat, Lon, Precision, Options) ->
     %% Calculate geonum for immediate bounding box and 8 surrounding boxes.
     {ok, UserGeonum} = geonum:encode(Lat, Lon, Precision),
 	set1(UserId, UserGeonum, Lat, Lon, Options),
 	UserGeonum.
 
+-spec set1(string(), integer(), float(), float(), list()) -> integer().
 set1(UserId, Geonum, Lat, Lon, Options) ->								  
 	%% Delete user first, in order to avoid erroneous records in geonum sets due to the change of user's location.
     geofilter:delete(UserId),
-    Geonums3x3 = hashes3x3(Geonum),
-    Commands = lists:map(fun(H) -> ["ZADD", ?GEONUM_KEY(H), float_to_list(distance(Lat, Lon, H)), UserId] end, Geonums3x3),
     StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", Geonum} | proplists:delete("geonum", Options)])],
     spawn(fun() -> cmd([StoreUserCommand, ["ZADD", ?GEONUM_KEY(Geonum), float_to_list(distance(Lat, Lon, Geonum)), UserId]]) end).
 
 %% @doc Remove records for a user.
+-spec delete(string()) -> ok | {error, not_found}.		
 delete(UserId) ->
     case cmd(["GET", ?USER_KEY(UserId)]) of
         undefined ->
@@ -123,7 +130,8 @@ delete(UserId) ->
             ok
     end.
 
-%% Generate random records within given geonum area.
+%% @doc Generate random records within given geonum area.
+-spec generate(integer(), integer() | undefined) -> ok.
 generate(GeoNum, undefined) ->
   generate(GeoNum, ?DEFAULT_GEN_NUMBER);
 
@@ -148,12 +156,6 @@ cmd(Cmd) ->
 hashes3x3(Hash) ->
     {ok, NeighborHashes} = geonum:neighbors(Hash),
     [Hash | NeighborHashes].
-
-%% @doc Time in milliseconds
--spec ts() -> integer().
-ts() ->
-    {Mega, Sec, Micro} = now(),
-    Mega * 1000000000 + Sec * 1000 + erlang:round(Micro / 1000).
 
 %% @doc Distance from the point {Lat, Lon} to the center of bounding box defined by Hash
 -spec distance(float(), float(), integer()) -> float(). 
