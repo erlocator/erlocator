@@ -129,6 +129,7 @@ function fblogin() {
                 $("#first_name").attr("value", response.name);
                 $("#profile_link").attr("value", "//facebook.com/" + response.id);
                 $("#avatar").attr("value", "//graph.facebook.com/" + response.id + "/picture");
+                client.id = response.id;
             });
         } else {
             // cancelled - do nothing
