@@ -7,7 +7,7 @@
 	<title>Erlocator</title>
 	<meta name="description" content="Erlocator." />
 	<meta name="author" content="Erlocator Client">
-        
+
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link href="bootstrap.min.css" rel="stylesheet"/>
         <link href="bootstrap-responsive.min.css" rel="stylesheet"/>
@@ -33,7 +33,7 @@
         z-index: 1000;
         border-radius: 5px;
         position:absolute;
-        top:20px;
+        top:10px;
         right :20px;
         width:220px;
         padding:20px;
@@ -52,11 +52,11 @@
         width : 98.2%;
         height : 600px;
         border: 1px solid blue;
-    }      
+    }
     #googlemap{
         width : 100%;
         height : 100%;
-    }    
+    }
     #googlemap img {
         max-width: none;
     }
@@ -76,6 +76,15 @@
     #numneighbors div{
         position: relative;
         width: 182px;
+    }
+    .map_info {
+    	width : 280px;
+    	background: white;
+    }
+    .map_info img{
+    	width:50px;
+    	height:50px;
+    	padding:2px;
     }
     .ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default {
         background: repeat-x scroll 50% 50% #51a351;
@@ -99,7 +108,7 @@
     .ui-corner-all {
         border-radius: 4px;
     }
-</style>  
+</style>
 <script>
 window.fbAsyncInit = function() {
     FB.init({
@@ -129,7 +138,12 @@ function fblogin() {
                 $("#first_name").attr("value", response.name);
                 $("#profile_link").attr("value", "//facebook.com/" + response.id);
                 $("#avatar").attr("value", "//graph.facebook.com/" + response.id + "/picture");
-                client.id = response.id;
+                client.facebookid = response.id;
+                client.name = response.name;
+                client.profileURL = "//facebook.com/" + response.id;
+                client.imageURL = "//graph.facebook.com/" + response.id + "/picture";
+                addClient();
+        		placeMarker(client,true);
             });
         } else {
             // cancelled - do nothing
@@ -145,14 +159,12 @@ function fblogin() {
 </div>
 <div class="row">
     <div class="span12 mapwrap">
-        <div id="googlemap"></div>  
+        <div id="googlemap"></div>
         <div id="clientform" class="rounded_corners">
-            <button id="facebooklogin" class="btn btn-info">FB Login</button>
-            <label>Name</label><input id="first_name" type="text" value="guest"/>  
-            <br/>
-            <label>Last Name</label><input id="last_name" type="text" value="guest"/>
-            <label>Image</label><input id="avatar" type="text" value="guest"/>
-            <label>Profile URL</label><input id="profile_link" type="text" value="guest"/>
+            <a id="facebooklogin"><img src="login-facebook.png"/></a>
+            <label>Name</label><input id="name" type="text" value="guest"/>
+            <label>Image</label><input id="avatar" type="text" value="http://erlocator.org/geonum/demo/defaultsmall.gif"/>
+            <label>Profile URL</label><input id="profile_link" type="text" value="http://erlocator.org/geonum/demo/index.html"/>
             <button id="updateinfo" class="btn btn-info">Update Info</button>
             <button id="neighbors" class="btn btn-info">Get Neighbors</button>
             <button id="boundingbox" class="btn btn-info">Get Bounding Box</button>
@@ -166,11 +178,11 @@ function fblogin() {
     </div>
 </div>
 </div>
-    
+
 <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
 <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.3/jquery-ui.min.js"></script>
 <script type="text/javascript" src="//maps.googleapis.com/maps/api/js?key=AIzaSyBKDimjznrPHNMwq4H0hJ036LzP_UFpbdo&amp;sensor=true&amp;libraries=geometry"></script>
-
+<script type="text/javascript" src="infobox.js"></script>
 
 
 <script>
@@ -179,10 +191,12 @@ var host = "http://erlocator.org/";
 var client = {
     geonum : "",
     id : Math.floor((Math.random()*10000)+1).toString(),
-    first_name : "guest",
-    last_name : "guest",
+    facebookid : 0,
+    name : "guest",
     lat : 40,
-    lon : -75
+    lon : -75,
+    profileURL : "http://erlocator.org/geonum/demo/index.html",
+    imageURL : "http://erlocator.org/geonum/demo/defaultsmall.gif"
 };
  var data = {
     geocoder : "",
@@ -205,8 +219,8 @@ $(document).ready(function(){
                     mapOptions);
             data.map.setCenter(new google.maps.LatLng(client.lat,client.lon));
             data.map.setZoom(11);
-    } 
-    
+    }
+
     placeMarker(client,true);
     if(navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
@@ -218,12 +232,12 @@ $(document).ready(function(){
                   placeMarker(client,true);
               }
         }, function() {
-             
+
         }, {maximumAge:30000, timeout: 2000});
     } else {
         // Browser doesn't support Geolocation
     }
-    
+
     $('#facebooklogin').click(function(){
         fblogin();
     });
@@ -248,8 +262,8 @@ $(document).ready(function(){
 
     $('#clearmap').click(function(){
         clearMap();
-    }); 
-   
+    });
+
     $('#boundingbox').click(function(){
         if( $('#boundingbox').text()=="Get Bounding Box"){
             getBoundingBox();
@@ -260,14 +274,22 @@ $(document).ready(function(){
         }
     });
     $('#updateinfo').click(function(){
-        client.first_name = $('#first_name').val();
-        client.last_name = $('#last_name').val();
+        client.name = $('#name').val();
+        if(/^([a-z]([a-z]|\d|\+|-|\.)*):(\/\/(((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:)*@)?((\[(|(v[\da-f]{1,}\.(([a-z]|\d|-|\.|_|~)|[!\$&'\(\)\*\+,;=]|:)+))\])|((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5]))|(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=])*)(:\d*)?)(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*|(\/((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)?)|((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)|((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)){0})(\?((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|[\uE000-\uF8FF]|\/|\?)*)?(\#((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|\/|\?)*)?$/i.test($('#avatar').val())) {
+        	client.imageURL = $('#avatar').val();
+        }else{
+        	$('#avatar').val(client.imageURL);
+        }
+        if(/^([a-z]([a-z]|\d|\+|-|\.)*):(\/\/(((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:)*@)?((\[(|(v[\da-f]{1,}\.(([a-z]|\d|-|\.|_|~)|[!\$&'\(\)\*\+,;=]|:)+))\])|((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5]))|(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=])*)(:\d*)?)(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*|(\/((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)?)|((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)|((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)){0})(\?((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|[\uE000-\uF8FF]|\/|\?)*)?(\#((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|\/|\?)*)?$/i.test($('#profile_link').val())) {
+        	client.profileURL = $('#profile_link').val();
+        }else{
+		    $('#profile_link').val(client.profileURL);
+        }
         addClient();
         placeMarker(client,true);
     });
-    $('#first_name').val(client.first_name);
-    $('#last_name').val(client.last_name);
-});       
+    $('#name').val(client.name);
+});
 
 function getNeighbors(){
     $.getJSON(host+'geo/neighbors',"geonum="+client.geonum,function(response){
@@ -277,8 +299,9 @@ function getNeighbors(){
          //clearMap();
          $.each(response.neighbors, function(index, neighbor) {
              if(neighbor.id != client.id){
-                if(typeof(neighbor.first_name) == "undefined")neighbor.first_name = "Neighbor ";
-                if(typeof(neighbor.last_name) == "undefined")neighbor.last_name = neighbor.id;
+                if(typeof(neighbor.name) == "undefined")neighbor.name = "Neighbor";
+                if(typeof(neighbor.imageURL) == "undefined")neighbor.imageURL = "http://erlocator.org/geonum/demo/defaultsmall.gif";
+                if(typeof(neighbor.profileURL) == "undefined")neighbor.profileURL = "http://erlocator.org/geonum/demo/index.html";
                 placeMarker(neighbor);
              }
          });
@@ -305,7 +328,7 @@ function getBoundingBox(){
         var bound = new google.maps.LatLngBounds();
         bound.extend(new google.maps.LatLng(tleft.lat,tleft.lon));
         bound.extend(new google.maps.LatLng(bright.lat,bright.lon));
-        
+
         ne = bound.getNorthEast();
         sw = bound.getSouthWest();
         se = new google.maps.LatLng(sw.lat(),ne.lng());
@@ -343,17 +366,31 @@ function placeMarker(obj,draggable){
     //make sure we are not leaving duplicate markers
     if(data.arrCurrentMarkers["m"+obj.id]){data.arrCurrentMarkers["m"+obj.id].setMap(null);}
     var el = '<div class="map_info">';
-    var userFullName = obj.first_name + ' ' + obj.last_name;
+    var userFullName = obj.name;
     if (userFullName.length > 20) {
             userFullName = userFullName.substr(0, 20) + '...';
     }
-    el += '<span>'+userFullName+'</span><br/>';
+	el += '<img class="map_thumbnail" src="'+obj.imageURL+'"/>';
+	el += '<span>'+userFullName+'</span><br/>';
+	el += '<span class="links">';
+	el += '<a target="_blank" href="'+obj.profileURL+'">Profile ';
+	if(typeof(obj.facebookid) != "undefined" && obj.facebookid != 0)el += ' <img src="shout_facebook.png" alt="Facebook">';
+	el += '</a>';
+	el += '</div>';
+	var infowindow = new InfoBox({
+		disableAutoPan: false,
+		maxWidth: 150,
+		zIndex: null,
+		boxStyle: {
+			opacity: 1,
+			width: "280px"
+		},
+		closeBoxMargin: "12px 4px 2px 2px",
+		closeBoxURL: "http://www.google.com/intl/en_us/mapfiles/close.gif",
+		infoBoxClearance: new google.maps.Size(1, 1),
+		content: el
+	});
 
-    el += '</div>';
-    var infowindow = new google.maps.InfoWindow({
-      content: el
-    });
-   
     if(draggable){
         //Client
         var marker = new google.maps.Marker({
@@ -379,12 +416,12 @@ function placeMarker(obj,draggable){
        var marker = new google.maps.Marker({
         position: new google.maps.LatLng(obj.lat, obj.lon),
         map: data.map
-       });  
+       });
     }
     google.maps.event.addListener(marker, 'click', function() {
         infowindow.open(data.map,marker);
-        setTimeout(function () { infowindow.close(); }, 5000);
-    });    
+        setTimeout(function () { infowindow.close(); }, 10000);
+    });
 
     data.arrCurrentMarkers["m"+obj.id] = marker; //Add Marker to array
 }
