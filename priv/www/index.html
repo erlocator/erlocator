@@ -79,12 +79,23 @@
     }
     .map_info {
     	width : 280px;
+    	height: 60px;
     	background: white;
     }
-    .map_info img{
+    .map_info div{
+    	width : 200px;
+    	height: 30px;
+    	float: left;
+    }
+    .map_info div p{
+    	line-height: 30px;
+     	vertical-align: middle;
+    }
+    .map_info .profileimg{
     	width:50px;
     	height:50px;
-    	padding:2px;
+    	margin:5px;
+    	float:left;
     }
     .ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default {
         background: repeat-x scroll 50% 50% #51a351;
@@ -370,11 +381,11 @@ function placeMarker(obj,draggable){
     if (userFullName.length > 20) {
             userFullName = userFullName.substr(0, 20) + '...';
     }
-	el += '<img class="map_thumbnail" src="'+obj.imageURL+'"/>';
-	el += '<span>'+userFullName+'</span><br/>';
+	el += '<img class="profileimg" src="'+obj.imageURL+'"/>';
+	el += '<div><p>'+userFullName+'</p></div>';
 	el += '<span class="links">';
 	el += '<a target="_blank" href="'+obj.profileURL+'">Profile ';
-	if(typeof(obj.facebookid) != "undefined" && obj.facebookid != 0)el += ' <img src="shout_facebook.png" alt="Facebook">';
+	if(typeof(obj.facebookid) != "undefined" && obj.facebookid != 0)el += ' <img class="fbimg" src="shout_facebook.png" alt="Facebook">';
 	el += '</a>';
 	el += '</div>';
 	var infowindow = new InfoBox({
