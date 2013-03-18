@@ -120,13 +120,12 @@ loop(Req, DocRoot, AppParams) ->
                     Geonum = proplists:get_value("geonum", Params),
                     Number = proplists:get_value("n", Params),
                     geofilter:generate(list_to_integer(Geonum), 
-                    case Number of 
-                        undefined ->
-                            undefined;
+                        case Number of 
+                            undefined ->
+                                undefined;
 
-                        N ->
-                            list_to_integer(N)
-
+                            N ->
+                                list_to_integer(N)
                     end),
                     Req:respond({200, [], []});
 			  "geo/flushall" ->
@@ -134,12 +133,10 @@ loop(Req, DocRoot, AppParams) ->
 					Req:respond({200, [], []});										 
                 _ ->
                     Req:not_found()
-
             end;
 
         _ ->
             Req:respond({501, [], []})
-
     end.
 
 %% Internal API
@@ -166,7 +163,6 @@ to_json({geonum, _Hash} = Data) ->
 to_json({bbox, Bbox, Bbox3x3}) ->
     {{TopLeftLat, TopLeftLon}, {BottomRightLat, BottomRightLon}} = Bbox,
     {{TopLeftLat3x3, TopLeftLon3x3}, {BottomRightLat3x3, BottomRightLon3x3}} = Bbox3x3,
-
     mochijson:encode(
         {struct, [
             {"bbox", {struct, [

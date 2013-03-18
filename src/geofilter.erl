@@ -57,12 +57,13 @@ start(Opts) ->
   
     spawn(fun() -> supervisor:start_child(geofilter_sup,
         {geofilter_redis_sup,
-	{cuesport, start_link,
-	[?POOL_NAME, PoolSize, ChildMods, ChildMFA]},
-        transient, 2000, supervisor, [cuesport | ChildMods]})
-	end),
+            {cuesport, start_link,
+            [?POOL_NAME, PoolSize, ChildMods, ChildMFA]},
+            transient, 2000, supervisor, [cuesport | ChildMods]})
+    end),
     %% The background process to clean up expired records
-    {ok, _TRef} = timer:apply_interval(proplists:get_value(cleanup_interval, Opts, ?DEFAULT_CLEANUP_INTERVAL), geofilter, cleanup_expired, [proplists:get_value(expiration_interval, Opts, ?DEFAULT_EXPIRATION)]).
+    {ok, _TRef} = timer:apply_interval(proplists:get_value(cleanup_interval, Opts, ?DEFAULT_CLEANUP_INTERVAL),
+        geofilter, cleanup_expired, [proplists:get_value(expiration_interval, Opts, ?DEFAULT_EXPIRATION)]).
 
 %% @doc Return bounding box coordinates for a single region.
 -spec bbox(integer()) -> {tuple(), tuple()}.		
@@ -84,9 +85,9 @@ bbox_3x3(Hash) ->
 %% @doc Return list of neighbors for a given hash.
 -spec neighbors(integer()) -> list().
 neighbors(Hash) ->
-  Commands = lists:map(fun(H) ->
-				["ZRANGE", ?GEONUM_KEY(H), 0, -1]
-					   end, hashes3x3(Hash)),
+    Commands = lists:map(fun(H) ->
+        ["ZRANGE", ?GEONUM_KEY(H), 0, -1]
+        end, hashes3x3(Hash)),
     lists:flatten(cmd(Commands)).
 
 %% @doc Return list of neighbors with associated data for a hash.
@@ -115,18 +116,19 @@ neighbors_full(Hash) ->
 set(UserId, Lat, Lon, Precision, Options) ->
     %% Calculate geonum for immediate bounding box and 8 surrounding boxes.
     {ok, UserGeonum} = geonum:encode(Lat, Lon, Precision),
-	set1(UserId, UserGeonum, Lat, Lon, Options),
-	UserGeonum.
+        set1(UserId, UserGeonum, Lat, Lon, Options),
+        UserGeonum.
 
 -spec set1(string(), integer(), float(), float(), list()) -> integer().
-set1(UserId, Geonum, Lat, Lon, Options) ->								  
-	%% Delete user first, in order to avoid erroneous records in geonum sets due to the change of user's location.
+
+set1(UserId, Geonum, Lat, Lon, Options) ->
+    %% Delete user first, in order to avoid erroneous records in geonum sets due to the change of user's location.
     geofilter:delete(UserId),
     StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", Geonum} | proplists:delete("geonum", Options)])],
-    spawn(fun() -> cmd([StoreUserCommand, 
-						["ZADD", ?GEONUM_KEY(Geonum), float_to_list(distance(Lat, Lon, Geonum)), UserId],
-					    ["ZADD", ?GEONUM_EXPIRE, ts(), UserId]
-					   ]) end).
+    spawn(fun() -> cmd([StoreUserCommand,
+        ["ZADD", ?GEONUM_KEY(Geonum), float_to_list(distance(Lat, Lon, Geonum)), UserId],
+        ["ZADD", ?GEONUM_EXPIRE, ts(), UserId]
+    ]) end).
 
 %% @doc Remove records for a user.
 -spec delete(string()) -> ok | {error, not_found}.		
@@ -138,41 +140,42 @@ delete(UserId) ->
             HashInt = proplists:get_value("geonum", binary_to_term(Data)),
             RemoveUserCommand = ["DEL", ?USER_KEY(UserId)],
             spawn(fun() -> cmd([RemoveUserCommand, 
-								["ZREM", ?GEONUM_KEY(HashInt), UserId],
-								["ZREM", ?GEONUM_EXPIRE, UserId]
-							   ]) end),
+                ["ZREM", ?GEONUM_KEY(HashInt), UserId],
+                ["ZREM", ?GEONUM_EXPIRE, UserId]
+                ]) end),
             ok
     end.
 
 %% @doc Clean up expired records
 -spec cleanup_expired(integer()) -> ok.
 cleanup_expired(ExpirationInterval) ->
-  io:format("Cleanup started...~n"),
-  Expired = cmd(["ZRANGEBYSCORE", ?GEONUM_EXPIRE, 0, ts() - ExpirationInterval]),
-  lists:foreach(fun(User) ->
-					 geofilter:delete(User)
-				end, Expired).
+    io:format("Cleanup started...~n"),
+    Expired = cmd(["ZRANGEBYSCORE", ?GEONUM_EXPIRE, 0, ts() - ExpirationInterval]),
+    lists:foreach(fun(User) ->
+        geofilter:delete(User)
+        end, Expired).
 
 %% @doc Wipe out all records.
 -spec flushall() -> any().		
 flushall() ->
-  cmd(["FLUSHALL"]).
+    cmd(["FLUSHALL"]).
 
 %% @doc Generate random records within given geonum area.
 -spec generate(integer(), integer() | undefined) -> ok.
 generate(GeoNum, undefined) ->
-  generate(GeoNum, ?DEFAULT_GEN_NUMBER);
+    generate(GeoNum, ?DEFAULT_GEN_NUMBER);
 
 generate(Geonum, Number) when is_integer(Number) ->
-  {{MaxLat, MinLon}, {MinLat, MaxLon}} = bbox_3x3(Geonum),
-  random:seed(now()),
-  {ok, Precision} = geonum:precision(Geonum),
-  lists:foreach(fun(_) ->
-					 Lat = random:uniform() * (MaxLat - MinLat) + MinLat,
-					 Lon = random:uniform() * (MaxLon - MinLon) + MinLon,
-					 {ok, G} = geonum:encode(Lat, Lon, Precision),
-					 add_neighbor("neighbor_" ++ integer_to_list(random:uniform(10000000)), G, Lat, Lon)
-				end, lists:seq(1, Number)).
+    {{MaxLat, MinLon}, {MinLat, MaxLon}} = bbox_3x3(Geonum),
+    random:seed(now()),
+    {ok, Precision} = geonum:precision(Geonum),
+    lists:foreach(fun(_) ->
+        Lat = random:uniform() * (MaxLat - MinLat) + MinLat,
+        Lon = random:uniform() * (MaxLon - MinLon) + MinLon,
+        {ok, G} = geonum:encode(Lat, Lon, Precision),
+        add_neighbor("neighbor_" ++ integer_to_list(random:uniform(10000000)), G, Lat, Lon)
+        end, lists:seq(1, Number)).
+
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
@@ -216,10 +219,10 @@ distance(Lat1, Lng1, Lat2, Lng2) ->
 %%
 -spec add_neighbor(string(), integer(), float(), float()) -> any().		
 add_neighbor(NeighborId, Geonum, Lat, Lon) ->
-  set1(NeighborId, Geonum, Lat, Lon, [{"id", NeighborId}, {"lat", Lat}, {"lon", Lon}, {"first_name", NeighborId}, {"last_name", "neighbor"}]).
+    set1(NeighborId, Geonum, Lat, Lon, [{"id", NeighborId}, {"lat", Lat}, {"lon", Lon}, {"first_name", NeighborId}, {"last_name", "neighbor"}]).
 
 %% Time in milliseconds
 -spec ts() -> integer().
 ts() ->
-  {Mega, Sec, Micro} = now(),
-  Mega * 1000000000 + Sec * 1000 + erlang:round(Micro / 1000).
+    {Mega, Sec, Micro} = now(),
+    Mega * 1000000000 + Sec * 1000 + erlang:round(Micro / 1000).
