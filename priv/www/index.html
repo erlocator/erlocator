@@ -146,7 +146,7 @@ function fblogin() {
         if (response.authResponse) {
             // connected - get user information
             FB.api('/me', function(response) {
-                $("#first_name").attr("value", response.name);
+                $("#name").attr("value", response.name);
                 $("#profile_link").attr("value", "//facebook.com/" + response.id);
                 $("#avatar").attr("value", "//graph.facebook.com/" + response.id + "/picture");
                 client.facebookid = response.id;
