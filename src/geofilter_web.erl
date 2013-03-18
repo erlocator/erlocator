@@ -26,7 +26,7 @@ start(Options) ->
                    ?MODULE:loop(Req, DocRoot, AppParams)
            end,
 	%%
-	spawn(fun() -> geofilter:start(AppParams) end),
+    geofilter:start(AppParams),
     mochiweb_http:start([{name, ?MODULE}, {loop, Loop} | Options1]).
 
 %% @doc Stop the geofilter webserver.

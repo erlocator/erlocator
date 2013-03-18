@@ -21,7 +21,9 @@
             {geonum_bits, 25},
             {redis_pool_size, 20},
             {redis_host, "localhost"},
-            {redis_port, 6379}
+            {redis_port, 6379},
+	    {expiration_interval, 1800000},
+	    {cleanup_interval, 300000}
         ]},
         {applications, [
             kernel,
