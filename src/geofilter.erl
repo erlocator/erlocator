@@ -80,7 +80,7 @@ bbox_3x3(Hash) ->
 -spec neighbors(integer()) -> list().
 neighbors(Hash) ->
   Commands = lists:map(fun(H) ->
-				["ZRANGE", ?GEONUM_KEY(H), 0, -1]
+				["SMEMBERS", ?GEONUM_KEY(H)]
 					   end, hashes3x3(Hash)),
     lists:flatten(cmd(Commands)).
 
@@ -119,7 +119,7 @@ set1(UserId, Geonum, Lat, Lon, Options) ->
     geofilter:delete(UserId),
     StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", Geonum} | proplists:delete("geonum", Options)])],
     spawn(fun() -> cmd([StoreUserCommand, 
-						["ZADD", ?GEONUM_KEY(Geonum), float_to_list(distance(Lat, Lon, Geonum)), UserId],
+						["SADD", ?GEONUM_KEY(Geonum), UserId],
 					    ["ZADD", ?GEONUM_EXPIRE, ts(), UserId]
 					   ]) end).
 
@@ -133,7 +133,7 @@ delete(UserId) ->
             HashInt = proplists:get_value("geonum", binary_to_term(Data)),
             RemoveUserCommand = ["DEL", ?USER_KEY(UserId)],
             spawn(fun() -> cmd([RemoveUserCommand, 
-								["ZREM", ?GEONUM_KEY(HashInt), UserId],
+								["SREM", ?GEONUM_KEY(HashInt), UserId],
 								["ZREM", ?GEONUM_EXPIRE, UserId]
 							   ]) end),
             ok
@@ -179,32 +179,6 @@ hashes3x3(Hash) ->
     {ok, NeighborHashes} = geonum:neighbors(Hash),
     [Hash | NeighborHashes].
 
-%% @doc Distance from the point {Lat, Lon} to the center of bounding box defined by Hash
--spec distance(float(), float(), integer()) -> float(). 
-distance(Lat, Lon, Hash) ->
-    {ok, {MidPointLat, MidPointLon} = _MidPoint} = geonum:decode(Hash),
-    distance(Lat, Lon, MidPointLat, MidPointLon).
-
-%% @doc Distance between two points (Haversine)
-%% Reference to original code:
-%% http://pdincau.wordpress.com/2012/12/26/distance-between-two-points-on-earth-in-erlang-an-haversine-function-implementation/
-%% @end
-%% @todo  Move to NIF
--spec distance(float(), float(), float(), float()) -> float().
-distance(Lat1, Lng1, Lat2, Lng2) ->
-    Deg2rad = fun(Deg) -> math:pi()*Deg/180 end,
-    [RLat1, RLng1, RLat2, RLng2] = [Deg2rad(Deg) || Deg <- [Lat1, Lng1, Lat2, Lng2]],
-
-    DLon = RLng2 - RLng1,
-    DLat = RLat2 - RLat1,
-  
-    A = math:pow(math:sin(DLat/2), 2) + math:cos(RLat1) * math:cos(RLat2) * math:pow(math:sin(DLon/2), 2),
-
-    C = 2 * math:asin(math:sqrt(A)),
-  
-    %% suppose radius of Earth is 6372.8 km
-    Km = 6372.8 * C,
-    Km.
 %%
 %% Helper function for generating neighbors
 %%
