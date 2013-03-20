@@ -121,7 +121,7 @@ set(UserId, Lat, Lon, Precision, Options) ->
 
 -spec set1(string(), integer(), float(), float(), list()) -> integer().
 
-set1(UserId, Geonum, Lat, Lon, Options) ->
+set1(UserId, Geonum, _Lat, _Lon, Options) ->
     %% Delete user first, in order to avoid erroneous records in geonum sets due to the change of user's location.
     geofilter:delete(UserId),
     StoreUserCommand = ["SET", ?USER_KEY(UserId), term_to_binary([{"geonum", Geonum} | proplists:delete("geonum", Options)])],
