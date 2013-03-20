@@ -80,8 +80,10 @@ loop(Req, DocRoot, AppParams) ->
                     Hash = list_to_integer(proplists:get_value("geonum", Params)),
                         Req:ok({"application/json", [], 
                         to_json({bbox, geofilter:bbox(Hash), geofilter:bbox_3x3(Hash)})});
-		"" ->
-			Req:serve_file("html/hello.html", DocRoot);
+
+                "" ->
+                    Req:serve_file("html/hello.html", DocRoot);
+
                 FilePath ->
                     case re:split(FilePath, ?FILE_REGEX) of
                         [_, FileName] ->
