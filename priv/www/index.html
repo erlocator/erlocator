@@ -442,7 +442,7 @@ function placeMarker(obj,draggable){
 function removeClient(id){
     $.post(host+'geo/delete','id='+id,
         function(response) {
-            removeMaker(response);
+            removeMarker({id:id});
         }
     );
 }
