@@ -6,6 +6,7 @@ all:
 	@$(REBAR) get-deps
 	for a in deps/*; do cd $$a; make; cd -; done
 	@$(REBAR) compile
+	@$(REBAR) doc
 clean:
 	for a in deps/*; do cd $$a; make clean; cd -; done
 	@$(REBAR) clean
