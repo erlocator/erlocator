@@ -177,7 +177,7 @@ function fblogin() {
             <a id="facebooklogin"><img src="login-facebook.png"/></a>
             <label>Name</label><input id="name" type="text" value="guest"/>
             <label>Image</label><input id="avatar" type="text" value="http://erlocator.org/geonum/demo/defaultsmall.gif"/>
-            <label>Profile URL</label><input id="profile_link" type="text" value="http://erlocator.org/geonum/demo/index.html"/>
+            <label>Profile URL</label><input id="profile_link" type="text" value="http://erlocator.org"/>
             <button id="updateinfo" class="btn btn-info">Update Info</button>
             <button id="neighbors" class="btn btn-info">Get Neighbors</button>
             <button id="boundingbox" class="btn btn-info">Get Bounding Box</button>
@@ -208,7 +208,7 @@ var client = {
     name : "guest",
     lat : 40,
     lon : -75,
-    profileURL : "http://erlocator.org/geonum/demo/index.html",
+    profileURL : "http://erlocator.org",
     imageURL : "http://erlocator.org/geonum/demo/defaultsmall.gif"
 };
  var data = {
@@ -314,7 +314,7 @@ function getNeighbors(){
              if(neighbor.id != client.id){
                 if(typeof(neighbor.name) == "undefined")neighbor.name = "Neighbor";
                 if(typeof(neighbor.imageURL) == "undefined")neighbor.imageURL = "http://erlocator.org/geonum/demo/defaultsmall.gif";
-                if(typeof(neighbor.profileURL) == "undefined")neighbor.profileURL = "http://erlocator.org/geonum/demo/index.html";
+                if(typeof(neighbor.profileURL) == "undefined")neighbor.profileURL = "http://erlocator.org";
                 placeMarker(neighbor);
              }
          });
