@@ -233,7 +233,7 @@ $(document).ready(function(){
             data.map.setCenter(new google.maps.LatLng(client.lat,client.lon));
             data.map.setZoom(11);
     }
-
+	addClient();
     placeMarker(client,true);
     if(navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
