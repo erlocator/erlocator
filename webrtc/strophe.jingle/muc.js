@@ -1,5 +1,7 @@
-var BOSH_SERVICE = 'http://ec2-50-19-39-227.compute-1.amazonaws.com:5280/http-bind',
-    DOMAIN = "xmpp.biglive.com";
+var BOSH_SERVICE = '/http-bind',
+    TURN_CREDENTIALS_SERVICE = '/http-bind-turn';	
+    //DOMAIN = "xmpp.biglive.com";
+    DOMAIN = "go.estos.de";
     CONFERENCEDOMAIN = 'conference.' + DOMAIN,
     ice_config = {iceServers: [{url: 'stun:stun.l.google.com:19302'}]}, 
     RTC = null,
@@ -318,7 +320,7 @@ $(window).bind('beforeunload', function() {
 
 $(document).ready(function() {
     RTC = setupRTC();
-    connection = new Strophe.Connection(BOSH_SERVICE);
+    connection = new Strophe.Connection(TURN_CREDENTIALS_SERVICE);
     if (RAWLOGGING) {
         connection.rawInput = function(data) { console.log('RECV: ' + data); };
         connection.rawOutput = function(data) { console.log('SEND: ' + data); };
