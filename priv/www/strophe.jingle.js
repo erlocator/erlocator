@@ -176,7 +176,7 @@ Strophe.addConnectionPlugin('jingle', {
             }
         }
     },
-    getStunAndTurnCredentials: function() {
+    getStunAndTurnCredentials: function(callback) {
         // get stun and turn configuration from server via xep-0215
         // uses time-limited credentials as described in
         // https://docs.google.com/document/d/1mG7eXFQ5o-ypMWQ1IzdkBQL0UBkLN1xXUJhJcIF5ujQ/edit
@@ -228,6 +228,7 @@ Strophe.addConnectionPlugin('jingle', {
                     }
                 });
                 this.ice_config.iceServers = iceservers;
+		callback(iceservers);
             },
             function(err) {
                 console.warn('getting turn credentials failed', err);

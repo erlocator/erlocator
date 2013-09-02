@@ -1,7 +1,7 @@
-var BOSH_SERVICE = '/http-bind',
-    TURN_CREDENTIALS_SERVICE = '/http-bind-turn';	
-    //DOMAIN = "xmpp.biglive.com";
-    DOMAIN = "go.estos.de";
+var BOSH_SERVICE = 'http://50.19.39.227/http-bind',
+    TURN_CREDENTIALS_SERVICE = 'http://50.19.39.227/http-bind-turn',	
+    DOMAIN = "xmpp.biglive.com",
+    TURN_DOMAIN = "go.estos.de",
     CONFERENCEDOMAIN = 'conference.' + DOMAIN,
     ice_config = {iceServers: [{url: 'stun:stun.l.google.com:19302'}]}, 
     RTC = null,
@@ -36,15 +36,43 @@ function onConnect(status) {
         }
     } else if (status == Strophe.Status.CONNECTED) {
         setStatus('Connected.');
-        connection.jingle.getStunAndTurnCredentials();
+	turn_service_connection = new Strophe.Connection(TURN_CREDENTIALS_SERVICE);
+    	if (RAWLOGGING) {
+        	turn_service_connection.rawInput = function(data) { console.log('TURN RECV: ' + data); };
+        	turn_service_connection.rawOutput = function(data) { console.log('TURN SEND: ' + data); };
+    	}
+	turn_service_connection.connect(TURN_DOMAIN, null, onTurnConnect);
+    }
+}
 
+function onTurnConnect(status) {
+    if (status == Strophe.Status.CONNECTING) {
+        setStatus('TURN/STUN service: Connecting.');
+    } else if (status == Strophe.Status.CONNFAIL) {
+        setStatus('TURN/STUN service: Connecting failed.');
+    } else if (status == Strophe.Status.DISCONNECTING) {
+        setStatus('TURN/STUN service: Disconnecting.');
+    } else if (status == Strophe.Status.DISCONNECTED) {
+        setStatus('TURN/STUN service: Disconnected.');
+        if (localStream) {
+            localStream.stop();
+            localStream = null;
+        }
+    } else if (status == Strophe.Status.CONNECTED) {
+        setStatus('TURN/STUN service connected.');
+        turn_service_connection.jingle.getStunAndTurnCredentials(onGetStunAndTurn);
+	}
+}
+
+function onGetStunAndTurn(iceservers) {
+        
+        connection.jingle.ice_config.iceServers  = iceservers;
         // disco stuff
         if (connection.disco) {
             connection.disco.addIdentity('client', 'web');
             connection.disco.addFeature(Strophe.NS.DISCO_INFO);
         }
         $(document).trigger('connected');
-    }
 }
 
 function onConnected(event) {
@@ -320,7 +348,7 @@ $(window).bind('beforeunload', function() {
 
 $(document).ready(function() {
     RTC = setupRTC();
-    connection = new Strophe.Connection(TURN_CREDENTIALS_SERVICE);
+    connection = new Strophe.Connection(BOSH_SERVICE);
     if (RAWLOGGING) {
         connection.rawInput = function(data) { console.log('RECV: ' + data); };
         connection.rawOutput = function(data) { console.log('SEND: ' + data); };
