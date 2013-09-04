@@ -620,6 +620,7 @@ maybe_serve_file(File, ExtraHeaders) ->
 
 server_headers() ->
     [{"Server", "MochiWeb/1.0 (" ++ ?QUIP ++ ")"},
+     {"Cache-Control", "no-cache"},
      {"Date", httpd_util:rfc1123_date()}].
 
 make_code(X) when is_integer(X) ->
