@@ -79,7 +79,7 @@ loop(Req, DocRoot, AppParams) ->
                 "geo/bbox" ->
                     Hash = list_to_integer(proplists:get_value("geonum", Params)),
                         Req:ok({"application/json", [], 
-                        to_json({bbox, geofilter:bbox(Hash), geofilter:bbox_3x3(Hash)})});
+                        to_json({bbox, geofilter:bbox(Hash), geofilter:bbox_3x3(Hash), geofilter:hashes3x3(Hash)})});
 
                 "" ->
                     Req:serve_file("html/hello.html", DocRoot);
@@ -88,7 +88,6 @@ loop(Req, DocRoot, AppParams) ->
                     case re:split(FilePath, ?FILE_REGEX) of
                         [_, FileName] ->
                             Req:serve_file(binary_to_list(FileName), DocRoot);
-
                         _Other ->
                             Req:not_found()
                     end
@@ -163,7 +162,7 @@ to_json(Neighbors) when is_list(Neighbors) ->
 to_json({geonum, _Hash} = Data) ->
     mochijson:encode({struct, [Data]});
 
-to_json({bbox, Bbox, Bbox3x3}) ->
+to_json({bbox, Bbox, Bbox3x3, Tiles}) ->
     {{TopLeftLat, TopLeftLon}, {BottomRightLat, BottomRightLon}} = Bbox,
     {{TopLeftLat3x3, TopLeftLon3x3}, {BottomRightLat3x3, BottomRightLon3x3}} = Bbox3x3,
     mochijson:encode(
@@ -175,7 +174,8 @@ to_json({bbox, Bbox, Bbox3x3}) ->
             {"bbox_3x3", {struct, [
                 {"top_left", {struct, [{"lat", TopLeftLat3x3}, {"lon", TopLeftLon3x3}]}}, 
                 {"bottom_right", {struct, [{"lat", BottomRightLat3x3}, {"lon", BottomRightLon3x3}]}}
-            ]}}			  
+            ]}},
+	    {"tiles", {array, lists:map(fun(N) -> N end, Tiles)}}			  
         ]});
 
 to_json(_) ->
