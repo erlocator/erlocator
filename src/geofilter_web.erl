@@ -75,7 +75,10 @@ loop(Req, DocRoot, AppParams) ->
                     Hash = list_to_integer(proplists:get_value("geonum", Params)), 
                         Req:ok({"application/json", [], 
                         to_json(geofilter:neighbors_full(Hash))});
-
+		"geo/get_neighbor" ->
+			NeighborId = proplists:get_value("id", Params),
+                        Req:ok({"application/json", [],
+                        to_json({neighbor, geofilter:get_neighbor(NeighborId)})});
                 "geo/bbox" ->
                     Hash = list_to_integer(proplists:get_value("geonum", Params)),
                         Req:ok({"application/json", [], 
@@ -158,6 +161,9 @@ to_float(Str) ->
 
 to_json(Neighbors) when is_list(Neighbors) ->
     mochijson:encode({struct, [{"neighbors", {array, lists:map(fun(N) -> {struct, N} end, Neighbors)}}]});
+
+to_json({neighbor, Neighbor} = Data) ->
+    mochijson:encode({struct, Neighbor});
 
 to_json({geonum, _Hash} = Data) ->
     mochijson:encode({struct, [Data]});

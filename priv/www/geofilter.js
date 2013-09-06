@@ -34,6 +34,23 @@ function getNeighbors(){
     });
 }
 
+function getNeighborInfo(userId){
+    $.getJSON(host+'geo/get_neighbor',"id="+userId,function(response){
+        /*
+         {"geonum":62914559,"id":"1501","lat":"90","lon":"90"}}
+         */
+	 var neighbor = response;
+             if(neighbor.id != client.id){
+                if(typeof(neighbor.name) == "undefined")neighbor.name = "Neighbor";
+                if(typeof(neighbor.imageURL) == "undefined")neighbor.imageURL = "http://erlocator.org/geonum/demo/defaultsmall.gif";
+                if(typeof(neighbor.profileURL) == "undefined")neighbor.profileURL = "http://erlocator.org";
+                placeMarker(neighbor);
+             }
+    });
+}
+
+
+
 function generateNeighbors(){
     //
     $.post(host+'geo/generate',{geonum:client.geonum,n: $( "#numneighbors div" ).slider( "value" )},
@@ -162,6 +179,24 @@ function removeClient(id){
             removeMarker({id:id});
         }
     );
+    if (connection && connection.connected) {
+        // ensure signout
+        $.ajax({
+                type: 'POST',
+                url: BOSH_SERVICE,
+                async: false,
+                cache: false,
+                contentType: 'application/xml',
+                data: "<body rid='" + connection.rid + "' xmlns='http://jabber.org/protocol/httpbind' sid='" + connection.sid + "' type='terminate'><presence xmlns='jabber:client' type='unavailable'/></body>",
+                success: function(data) {
+                console.log('signed out');
+                console.log(data);
+            },
+            error: function(XMLHttpRequest, textStatus, errorThrown) {
+                console.log('signout error', textStatus + ' (' + errorThrown + ')');
+            }
+        });
+    }
 }
 
 function removeMarker (obj) {
@@ -274,12 +309,14 @@ function joinArea() {
 function onNeighborIn(pres) {
    var from = pres.getAttribute('from'),
         type = pres.getAttribute('type');
+console.log("incoming presence from "  + from + ", type =" + type);
     if (type != null) {
         return true;
     }
     var neighborId = Strophe.getResourceFromJid(from);
-    if (neighborId && neighbourId != client.id) {
+    if (neighborId && neighborId != client.id) {
         console.log('Neighbor ' + neighborId + ' has come online...');
+	getNeighborInfo(neighborId);
     }
     return true;
 }
@@ -287,12 +324,11 @@ function onNeighborIn(pres) {
 function onNeighborOut(pres) {
    var from = pres.getAttribute('from'),
         type = pres.getAttribute('type');
-    if (type != null) {
-        return true;
-    }  
+	console.log("incoming unavailable presence from " + from + ", type =" + type);
     var neighborId = Strophe.getResourceFromJid(from);
-    if (neighborId) {
-    	console.log('Neighbor ' + neighborId + ' has left...'); 
+    if (neighborId && neighborId != client.id) {
+        console.log('Neighbor ' + neighborId + ' has left...');
+        removeMarker({id:neighborId});
     }
     return true;
 }

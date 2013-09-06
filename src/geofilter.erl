@@ -17,7 +17,7 @@
 %% API functions
 %% ====================================================================
 -export([start/1]).
--export([bbox/1, bbox_3x3/1, hashes3x3/1, neighbors/1, neighbors_full/1, set/5, delete/1]).
+-export([bbox/1, bbox_3x3/1, hashes3x3/1, get_neighbor/1, neighbors/1, neighbors_full/1, set/5, delete/1]).
 -export([generate/2]).
 -export([cleanup_expired/1, flushall/0]).
 -export([start/0, stop/0]).
@@ -110,6 +110,16 @@ neighbors_full(Hash) ->
 		  [binary_to_term(Results)]
 	  end
   end.
+
+%% @doc Lookup neighbor by id
+-spec get_neighbor(string()) -> any().
+get_neighbor(UserId) ->
+case cmd(["GET", ?USER_KEY(UserId)]) of
+        undefined ->
+            {error, not_found};
+        Data -> 
+	    binary_to_term(Data)
+end.
 
 %% @doc Create record for a user at a given location.
 -spec set(string(), float(), float(), integer(), list()) -> integer().
