@@ -12,6 +12,8 @@
         <link href="bootstrap.min.css" rel="stylesheet"/>
         <link href="bootstrap-responsive.min.css" rel="stylesheet"/>
 	<link rel="shortcut icon" href="/favicon.ico" />
+	<script type="text/javascript" src="geofilter.js" />
+	<script type="text/javascript" src="muc.js" />
         <script type="text/javascript" src="https://getfirebug.com/firebug-lite-debug.js">{
             overrideConsole: false,
             startOpened: false
@@ -193,11 +195,15 @@ function fblogin() {
 </div>
 
 <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+<!-- script src='http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js'></script --><!-- jquery -->
 <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.3/jquery-ui.min.js"></script>
 <script type="text/javascript" src="//maps.googleapis.com/maps/api/js?key=AIzaSyBKDimjznrPHNMwq4H0hJ036LzP_UFpbdo&amp;sensor=true&amp;libraries=geometry"></script>
 <script type="text/javascript" src="infobox.js"></script>
-
-
+    <script src='strophe.js'></script><!-- strophe, minified -->
+    <script src='strophe.jingle.js' charset='utf-8'></script><!-- strophe jingle connection plugin -->
+    <script src='strophe.jingle.session.js' charset='utf-8'></script><!-- strophe jingle connection plugin -->
+    <script src='strophe.jingle.sdp.js' charset='utf-8'></script><!-- sdp library -->
+    <script src='strophe.jingle.adapter.js' charset='utf-8'></script><!-- getusermedia cross browser compat layer -->
 <script>
 //identifier for the user
 var host = "http://erlocator.org/";
@@ -208,6 +214,7 @@ var client = {
     name : "guest",
     lat : 40,
     lon : -75,
+    geonum_tiles: [],
     profileURL : "http://erlocator.org",
     imageURL : "http://erlocator.org/geonum/demo/defaultsmall.gif"
 };
@@ -233,8 +240,8 @@ $(document).ready(function(){
             data.map.setCenter(new google.maps.LatLng(client.lat,client.lon));
             data.map.setZoom(11);
     }
-	addClient();
-    placeMarker(client,true);
+    addClient();
+    //placeMarker(client,true);
     if(navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
               client.lat = position.coords.latitude;
@@ -250,7 +257,7 @@ $(document).ready(function(){
     } else {
         // Browser doesn't support Geolocation
     }
-
+    connect_xmpp();
     $('#facebooklogin').click(function(){
         fblogin();
     });
@@ -303,164 +310,6 @@ $(document).ready(function(){
     });
     $('#name').val(client.name);
 });
-
-function getNeighbors(){
-    $.getJSON(host+'geo/neighbors',"geonum="+client.geonum,function(response){
-        /*
-         {"neighbors":[{"geonum":62914559,"id":"1501","lat":"90","lon":"90"},{"geonum":62914558,"id":"1502","lat":"90","lon":"90"}]}
-         */
-         //clearMap();
-         $.each(response.neighbors, function(index, neighbor) {
-             if(neighbor.id != client.id){
-                if(typeof(neighbor.name) == "undefined")neighbor.name = "Neighbor";
-                if(typeof(neighbor.imageURL) == "undefined")neighbor.imageURL = "http://erlocator.org/geonum/demo/defaultsmall.gif";
-                if(typeof(neighbor.profileURL) == "undefined")neighbor.profileURL = "http://erlocator.org";
-                placeMarker(neighbor);
-             }
-         });
-    });
-}
-
-function generateNeighbors(){
-    //
-    $.post(host+'geo/generate',{geonum:client.geonum,n: $( "#numneighbors div" ).slider( "value" )},
-        function(obj) {
-           getNeighbors();
-        }
-    );
-}
-
-function getBoundingBox(){
-    $.getJSON(host+'geo/bbox',"geonum="+client.geonum,function(response){
-        /*
-         {"top_left":{"lat":90.0,"lon":89.9560546875},"bottom_right":{"lat":89.9560546875,"lon":90.0}}
-         */
-        //draw bounding box
-        var tleft = response.bbox_3x3.top_left;
-        var bright = response.bbox_3x3.bottom_right;
-        var bound = new google.maps.LatLngBounds();
-        bound.extend(new google.maps.LatLng(tleft.lat,tleft.lon));
-        bound.extend(new google.maps.LatLng(bright.lat,bright.lon));
-
-        ne = bound.getNorthEast();
-        sw = bound.getSouthWest();
-        se = new google.maps.LatLng(sw.lat(),ne.lng());
-        nw = new google.maps.LatLng(ne.lat(),sw.lng());
-        map_c = new google.maps.LatLng(ne.lat(),-180);
-        map_ne = new google.maps.LatLng(74,-180);
-        map_sw =  new google.maps.LatLng(-90,180);
-        map_se1 = new google.maps.LatLng(map_sw.lat(),0);
-        map_se2 = new google.maps.LatLng(map_sw.lat(),-180);
-        map_nw = new google.maps.LatLng(map_ne.lat(),map_sw.lng());
-        if(data.bounding_box)data.bounding_box.setMap(null);
-        data.bounding_box = new google.maps.Polygon({
-        paths: [ne,se,sw,nw,map_ne,map_se2,map_se1,map_sw,map_c,ne],
-                  strokeColor: "blue",
-                  strokeOpacity: 0.8,
-                  strokeWeight: 0,
-                  fillColor: "blue",
-                  fillOpacity: 0.15,
-                  map: data.map
-        });
-    });
-}
-
-function addClient(){
-    //at a a minimum id, lat, lon must be provided
-    $.post(host+'geo/set',client,
-        function(obj) {
-            var response = $.parseJSON(obj);
-            client.geonum = obj.geonum;
-        }
-    );
-}
-
-function placeMarker(obj,draggable){
-    //make sure we are not leaving duplicate markers
-    if(data.arrCurrentMarkers["m"+obj.id]){data.arrCurrentMarkers["m"+obj.id].setMap(null);}
-    var el = '<div class="map_info">';
-    var userFullName = obj.name;
-    if (userFullName.length > 20) {
-            userFullName = userFullName.substr(0, 20) + '...';
-    }
-	el += '<img class="profileimg" src="'+obj.imageURL+'"/>';
-	el += '<div><p>'+userFullName+'</p></div>';
-	el += '<span class="links">';
-	el += '<a target="_blank" href="'+obj.profileURL+'">Profile ';
-	if(typeof(obj.facebookid) != "undefined" && obj.facebookid != 0)el += ' <img class="fbimg" src="shout_facebook.png" alt="Facebook">';
-	el += '</a>';
-	el += '</div>';
-	var infowindow = new InfoBox({
-		disableAutoPan: false,
-		maxWidth: 150,
-		zIndex: null,
-		boxStyle: {
-			opacity: 1,
-			width: "280px"
-		},
-		closeBoxMargin: "12px 4px 2px 2px",
-		closeBoxURL: "http://www.google.com/intl/en_us/mapfiles/close.gif",
-		infoBoxClearance: new google.maps.Size(1, 1),
-		content: el
-	});
-
-    if(draggable){
-        //Client
-        var marker = new google.maps.Marker({
-            icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-            draggable: true,
-            position: new google.maps.LatLng(obj.lat, obj.lon),
-            map: data.map
-         });
-         //show the infowindow with the new data
-         data.clientinfo = infowindow;
-         data.clientinfo.open(data.map,marker);
-         setTimeout(function () { data.clientinfo.close(); }, 2000);
-         google.maps.event.addListener(marker, 'dragend', function() {
-             if(data.clientinfo)data.clientinfo.close();
-              var pos = marker.getPosition();
-              client.lat = pos.lat();
-              client.lon = pos.lng();
-              addClient();
-              if(data.bounding_box)data.bounding_box.setMap(null);
-        });
-    }else{
-        //Neighbor
-       var marker = new google.maps.Marker({
-        position: new google.maps.LatLng(obj.lat, obj.lon),
-        map: data.map
-       });
-    }
-    google.maps.event.addListener(marker, 'click', function() {
-        infowindow.open(data.map,marker);
-        setTimeout(function () { infowindow.close(); }, 10000);
-    });
-
-    data.arrCurrentMarkers["m"+obj.id] = marker; //Add Marker to array
-}
-
-function removeClient(id){
-    $.post(host+'geo/delete','id='+id,
-        function(response) {
-            removeMarker({id:id});
-        }
-    );
-}
-
-function removeMarker (obj) {
-     if(data.arrCurrentMarkers["m"+obj.id]){
-        data.arrCurrentMarkers["m"+obj.id].setMap(null);
-        delete 	data.arrCurrentMarkers["m"+obj.id];
-     }
-}
-
-function clearMap() {
-    for(var key in data.arrCurrentMarkers){
-            data.arrCurrentMarkers[key].setMap(null);
-            delete data.arrCurrentMarkers[key];
-    }
-    placeMarker(client,true);
-}//end clearMap
 
 window.onbeforeunload = function() {
   removeClient(client.id);
