@@ -15,7 +15,8 @@ var BOSH_SERVICE = 'http://50.19.39.227/http-bind',
     myroomjid = null,
     roomjid = null,
     turn_service_connection = null,
-    list_members = [];
+    list_members = [],
+    handlers = [];
 
 function getNeighbors(){
     $.getJSON(host+'geo/neighbors',"geonum="+client.geonum,function(response){
@@ -65,7 +66,6 @@ function getBoundingBox(bbox_handler){
         /*
          {"top_left":{"lat":90.0,"lon":89.9560546875},"bottom_right":{"lat":89.9560546875,"lon":90.0}, "tiles":[48932760, ....]}
          */
-	client.tiles = response.tiles;
         //draw bounding box
         var tleft = response.bbox_3x3.top_left;
         var bright = response.bbox_3x3.bottom_right;
@@ -94,17 +94,20 @@ function getBoundingBox(bbox_handler){
                   map: data.map
         });
 	if (bbox_handler) {
-		bbox_handler();
+		bbox_handler(response);
 	}
     });
 }
 
-function addClient(){
+function addClient(handler){
     //at a a minimum id, lat, lon must be provided
     $.post(host+'geo/set',client,
         function(obj) {
             var response = $.parseJSON(obj);
             client.geonum = obj.geonum;
+	    if (handler) {
+		handler();
+	    }
         }
     );
 }
@@ -155,7 +158,7 @@ function placeMarker(obj,draggable){
               var pos = marker.getPosition();
               client.lat = pos.lat();
               client.lon = pos.lng();
-              addClient();
+              addClient(joinArea);
               if(data.bounding_box)data.bounding_box.setMap(null);
         });
     }else{
@@ -291,24 +294,62 @@ function setStatus(txt) {
 }
 
 function joinArea() {
-	getBoundingBox(function() {
-		for (var i = 0; i < client.tiles.length; i++) {
-			console.log(client.tiles[i]);
-			var roomjid = client.tiles[i] + '@' + CONFERENCEDOMAIN + '/' + client.id;
-			connection.addHandler(onNeighborIn, null, 'presence', null, null, roomjid, {matchBare: true});
-    			connection.addHandler(onNeighborOut, null, 'presence', 'unavailable', null, roomjid, {matchBare: true});
-    			connection.addHandler(onPresenceError, null, 'presence', 'error', null, roomjid, {matchBare: true});
-			// Join the room
-			pres = $pres({to: roomjid })
-            			.c('x', {xmlns: 'http://jabber.org/protocol/muc'});
-    			connection.send(pres);
-		}
+	getBoundingBox(function(response) {
+		// Remove old handlers, if any
+		removePresenceHandlers();
+                // Set up presence listeners for the "home" area
+                // Note: we are not interested in listening on 3x3 grid, because all our neighbors within it will notify our "home" area anyway
+                var home_room_jid = client.geonum + '@' + CONFERENCEDOMAIN  + '/' + client.id;
+                handlers.push(connection.addHandler(onNeighborIn, null, 'presence', null, null, home_room_jid, {matchBare: true}));
+                handlers.push(connection.addHandler(onNeighborOut, null, 'presence', 'unavailable', null, home_room_jid, {matchBare: true}));
+                handlers.push(connection.addHandler(onPresenceError, null, 'presence', 'error', null, home_room_jid, {matchBare: true}));
+
+		// Figure out what areas to notify
+		// We could have moved to the new location, so we need to figure:
+		// 1) what areas we left - need to send 'unavailable' to them;
+		// 2) what areas we joined - need to send 'available';
+		// 3) ignore other areas (i.e. the ones that we are still in).
+		console.log("The current tiles:" + client.tiles);
+		console.log("The new tiles:" + response.tiles);
+		
+		client.tiles.forEach(function(t) {
+                        if (response.tiles.indexOf(t) == -1) { //area to leave
+                                var roomjid = t + '@' + CONFERENCEDOMAIN + '/' + client.id;
+                                // Leave the room
+				console.log("Leaving " + roomjid);
+                                pres = $pres({to: roomjid, type: 'unavailable' })
+                                        .c('x', {xmlns: 'http://jabber.org/protocol/muc'});
+                                connection.send(pres);
+                        }
+                });
+		response.tiles.forEach(function(t) {
+			if (client.tiles.indexOf(t) == -1) { //new area
+				var roomjid = t + '@' + CONFERENCEDOMAIN + '/' + client.id;
+		                // Join the room
+				console.log("Joining " + roomjid);
+                        	pres = $pres({to: roomjid })
+                                	.c('x', {xmlns: 'http://jabber.org/protocol/muc'});
+                        	connection.send(pres);
+			}
+		});
+	
+		// Update the tiles
+		client.tiles = response.tiles;
 	});
 }
 
+function removePresenceHandlers() {
+   for (var i = 0; i< handlers.length; i++) {
+	if (handlers[i]) {
+	   connection.deleteHandler(handlers[i]);
+	}	
+   }
+}
+
 function onNeighborIn(pres) {
+   if (!pres) return true;
    var from = pres.getAttribute('from'),
-        type = pres.getAttribute('type');
+   	type = pres.getAttribute('type');
 console.log("incoming presence from "  + from + ", type =" + type);
     if (type != null) {
         return true;

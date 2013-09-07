@@ -214,7 +214,7 @@ var client = {
     name : "guest",
     lat : 40,
     lon : -75,
-    geonum_tiles: [],
+    tiles: [],
     profileURL : "http://erlocator.org",
     imageURL : "http://erlocator.org/geonum/demo/defaultsmall.gif"
 };
@@ -240,13 +240,12 @@ $(document).ready(function(){
             data.map.setCenter(new google.maps.LatLng(client.lat,client.lon));
             data.map.setZoom(11);
     }
-    addClient();
     //placeMarker(client,true);
     if(navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
               client.lat = position.coords.latitude;
               client.lon = position.coords.longitude;
-              addClient();
+              addClient(connect_xmpp);
               if(data.map){
                   data.map.setCenter(new google.maps.LatLng(client.lat ,client.lon));
                   placeMarker(client,true);
@@ -257,7 +256,6 @@ $(document).ready(function(){
     } else {
         // Browser doesn't support Geolocation
     }
-    connect_xmpp();
     $('#facebooklogin').click(function(){
         fblogin();
     });
