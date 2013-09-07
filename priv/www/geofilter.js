@@ -266,6 +266,8 @@ function onConnect(status) {
         	turn_service_connection.rawOutput = function(data) { console.log('TURN SEND: ' + data); };
     	}
 	turn_service_connection.connect(TURN_DOMAIN, null, onTurnConnect);
+	// Add permanent handler (for 'available' presence)
+        connection.addHandler(onNeighborIn, null, 'presence');
 	// Join the area
 	joinArea();
     }
@@ -307,16 +309,16 @@ function joinArea() {
 		// Remove old handlers, if any
 		removePresenceHandlers();
                 // Set up presence listeners for the "home" area
-                // Note: we are not interested in listening on 3x3 grid, because all our neighbors within it will notify our "home" area anyway
+		// Note: the listener for incoming 'available' presences being registered upon connection, as it doesn't depend on the "home room"
+		// TODO: consider remove dependency on "home room" and have the listener that ignores noise outside the grid
                 var home_room_jid = client.geonum + '@' + CONFERENCEDOMAIN  + '/' + client.id;
-                handlers.push(connection.addHandler(onNeighborIn, null, 'presence', null, null, home_room_jid, {matchBare: true}));
                 handlers.push(connection.addHandler(onNeighborOut, null, 'presence', 'unavailable', null, home_room_jid, {matchBare: true}));
                 handlers.push(connection.addHandler(onPresenceError, null, 'presence', 'error', null, home_room_jid, {matchBare: true}));
 
 		// Figure out what areas to notify
 		// We could have moved to the new location, so we need to figure:
-		// 1) what areas we left - need to send 'unavailable' to them;
-		// 2) what areas we joined - need to send 'available';
+		// 1) what areas we've left - need to send 'unavailable' to them;
+		// 2) what areas we are joining - need to send 'available';
 		// 3) ignore other areas (i.e. the ones that we are still in).
 		console.log("The current tiles:" + client.tiles);
 		console.log("The new tiles:" + response.tiles);
@@ -361,8 +363,14 @@ function onNeighborIn(pres) {
    var from = pres.getAttribute('from'),
    	type = pres.getAttribute('type');
 	console.log("incoming presence from "  + from + ", type =" + type);
+    if (Strophe.getDomainFromJid(from) != CONFERENCEDOMAIN) { // only interested in MUC presence
+	return true;
+    }
     if (type != null) {
         return true;
+    }
+    if (client.tiles.indexOf(parseInt(Strophe.getNodeFromJid(from))) == -1) { // The presence from outside the grid
+	return true;
     }
     var neighborId = Strophe.getResourceFromJid(from);
     if (neighborId && neighborId != client.id) {
