@@ -77,8 +77,13 @@ loop(Req, DocRoot, AppParams) ->
                         to_json(geofilter:neighbors_full(Hash))});
 		"geo/get_neighbor" ->
 			NeighborId = proplists:get_value("id", Params),
-                        Req:ok({"application/json", [],
-                        to_json({neighbor, geofilter:get_neighbor(NeighborId)})});
+			case geofilter:get_neighbor(NeighborId) of
+			   {error, not_found} ->
+				Req:not_found();
+			   NeighborInfo ->	
+                        	Req:ok({"application/json", [],
+                        	to_json({neighbor, NeighborInfo})})
+			end;
                 "geo/bbox" ->
                     Hash = list_to_integer(proplists:get_value("geonum", Params)),
                         Req:ok({"application/json", [], 
