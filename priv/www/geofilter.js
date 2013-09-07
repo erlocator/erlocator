@@ -41,7 +41,8 @@ function getNeighborInfo(userId){
          {"geonum":62914559,"id":"1501","lat":"90","lon":"90"}}
          */
 	 var neighbor = response;
-             if(neighbor.id != client.id){
+	     // Check if the neighbor is not a client, and it's not outside the grid
+             if(neighbor.id != client.id && client.tiles.indexOf(parseInt(neighbor.geonum)) != -1){
                 if(typeof(neighbor.name) == "undefined")neighbor.name = "Neighbor";
                 if(typeof(neighbor.imageURL) == "undefined")neighbor.imageURL = "http://erlocator.org/geonum/demo/defaultsmall.gif";
                 if(typeof(neighbor.profileURL) == "undefined")neighbor.profileURL = "http://erlocator.org";
