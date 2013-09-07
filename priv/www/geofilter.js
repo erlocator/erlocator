@@ -53,7 +53,7 @@ function getNeighborInfo(userId){
 }
 
 function storeNeighbor(geonum, id) {
-	neighbors[id] = geonum;
+	neighbors["" + id] = geonum;
 } 
 
 function removeNeighbor(id) {
@@ -214,6 +214,7 @@ function removeMarker (id) {
      if(data.arrCurrentMarkers["m"+id]){
         data.arrCurrentMarkers["m"+id].setMap(null);
         delete 	data.arrCurrentMarkers["m"+id];
+	removeNeighbor(id);
      }
 }
 
@@ -379,7 +380,6 @@ function onNeighborOut(pres) {
     if (neighborId && neighborId != client.id) {
         console.log('Neighbor ' + neighborId + ' has left...');
         removeMarker(neighborId);
-	removeNeighbor(neighborId);
     }
     return true;
 }
