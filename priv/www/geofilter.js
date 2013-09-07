@@ -15,7 +15,7 @@ var BOSH_SERVICE = 'http://50.19.39.227/http-bind',
     myroomjid = null,
     roomjid = null,
     turn_service_connection = null,
-    list_members = [],
+    neighbors = [],
     handlers = [];
 
 function getNeighbors(){
@@ -46,11 +46,19 @@ function getNeighborInfo(userId){
                 if(typeof(neighbor.imageURL) == "undefined")neighbor.imageURL = "http://erlocator.org/geonum/demo/defaultsmall.gif";
                 if(typeof(neighbor.profileURL) == "undefined")neighbor.profileURL = "http://erlocator.org";
                 placeMarker(neighbor);
+		// Store neighbor with geonum, so we can do area cleanups later
+		storeNeighbor(neighbor.geonum, neighbor.id);
              }
     });
 }
 
+function storeNeighbor(geonum, id) {
+	neighbors[id] = geonum;
+} 
 
+function removeNeighbor(id) {
+   delete neighbors[id];
+}
 
 function generateNeighbors(){
     //
@@ -179,7 +187,7 @@ function placeMarker(obj,draggable){
 function removeClient(id){
     $.post(host+'geo/delete','id='+id,
         function(response) {
-            removeMarker({id:id});
+            removeMarker(id);
         }
     );
     if (connection && connection.connected) {
@@ -202,10 +210,10 @@ function removeClient(id){
     }
 }
 
-function removeMarker (obj) {
-     if(data.arrCurrentMarkers["m"+obj.id]){
-        data.arrCurrentMarkers["m"+obj.id].setMap(null);
-        delete 	data.arrCurrentMarkers["m"+obj.id];
+function removeMarker (id) {
+     if(data.arrCurrentMarkers["m"+id]){
+        data.arrCurrentMarkers["m"+id].setMap(null);
+        delete 	data.arrCurrentMarkers["m"+id];
      }
 }
 
@@ -317,6 +325,7 @@ function joinArea() {
                                 var roomjid = t + '@' + CONFERENCEDOMAIN + '/' + client.id;
                                 // Leave the room
 				console.log("Leaving " + roomjid);
+				removeMarkers(t);
                                 pres = $pres({to: roomjid, type: 'unavailable' })
                                         .c('x', {xmlns: 'http://jabber.org/protocol/muc'});
                                 connection.send(pres);
@@ -350,7 +359,7 @@ function onNeighborIn(pres) {
    if (!pres) return true;
    var from = pres.getAttribute('from'),
    	type = pres.getAttribute('type');
-console.log("incoming presence from "  + from + ", type =" + type);
+	console.log("incoming presence from "  + from + ", type =" + type);
     if (type != null) {
         return true;
     }
@@ -369,7 +378,8 @@ function onNeighborOut(pres) {
     var neighborId = Strophe.getResourceFromJid(from);
     if (neighborId && neighborId != client.id) {
         console.log('Neighbor ' + neighborId + ' has left...');
-        removeMarker({id:neighborId});
+        removeMarker(neighborId);
+	removeNeighbor(neighborId);
     }
     return true;
 }
@@ -377,4 +387,8 @@ function onNeighborOut(pres) {
 function onPresenceError(pres) {
    console.log("Presence error:" + pres);
    return true;
+}
+
+function removeMarkers(geonum) {
+   Object.keys(neighbors).forEach(function(k) {if (neighbors[k] == geonum) {removeMarker(k)}});   
 }
