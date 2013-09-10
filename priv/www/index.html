@@ -75,6 +75,7 @@
         position: relative;
         text-align: left;
     }
+    #minivideo {width:160px;height:120px;position:absolute;center:10px;top:10px;}
     #numneighbors div{
         position: relative;
         width: 182px;
@@ -172,6 +173,7 @@ function fblogin() {
 <h1>Erlocator Demo</h1>
 </header>
 </div>
+<video id='minivideo' autoplay='autoplay'></video>
 <div class="row">
     <div class="span12 mapwrap">
         <div id="googlemap"></div>
@@ -181,13 +183,6 @@ function fblogin() {
             <label>Image</label><input id="avatar" type="text" value="http://erlocator.org/geonum/demo/defaultsmall.gif"/>
             <label>Profile URL</label><input id="profile_link" type="text" value="http://erlocator.org"/>
             <button id="updateinfo" class="btn btn-info">Update Info</button>
-            <button id="neighbors" class="btn btn-info">Get Neighbors</button>
-            <button id="boundingbox" class="btn btn-info">Get Bounding Box</button>
-            <hr>
-            <button id="genneighbors" class="btn btn-success">Generate <span>1</span> Neighbor(s)</button>
-            <div id="numneighbors"><div></div></div>
-            <hr>
-            <button id="clearmap" class="btn btn-warning">Clear Map</button>
 
         </div>
     </div>

@@ -231,6 +231,8 @@ function clearMap() {
 
 function connect_xmpp() {
    RTC = setupRTC();
+   bindJingleEvents();
+   //getUserMediaWithConstraints(['audio', 'video']);
    connection = new Strophe.Connection(BOSH_SERVICE);
     if (RAWLOGGING) {
         connection.rawInput = function(data) { console.log('RECV: ' + data); };
@@ -401,3 +403,118 @@ function onPresenceError(pres) {
 function removeMarkers(geonum) {
    Object.keys(neighbors).forEach(function(k) {if (neighbors[k] == geonum) {removeMarker(k)}});   
 }
+
+
+// Video
+function bindJingleEvents() {
+  $(document).bind('mediaready.jingle', onMediaReady);
+    $(document).bind('mediafailure.jingle', onMediaFailure);
+    $(document).bind('callincoming.jingle', onCallIncoming);
+    $(document).bind('callactive.jingle', onCallActive);
+    $(document).bind('callterminated.jingle', onCallTerminated);
+
+    $(document).bind('remotestreamadded.jingle', onRemoteStreamAdded);
+    $(document).bind('remotestreamremoved.jingle', onRemoteStreamRemoved);
+    $(document).bind('iceconnectionstatechange.jingle', onIceConnectionStateChanged);
+    $(document).bind('nostuncandidates.jingle', noStunCandidates);
+    if (RTC != null) {
+        RTCPeerconnection = RTC.peerconnection;
+        if (RTC.browser == 'firefox') {
+            connection.jingle.media_constraints.mandatory['MozDontOfferDataChannel'] = true;
+        }
+        getUserMediaWithConstraints(['audio', 'video']);
+    } else {
+        //setStatus('webrtc capable browser required');
+    }
+
+}
+
+// Jingle callbacks
+function onMediaReady(event, stream) {
+    localStream = stream;
+    connection.jingle.localStream = stream;
+    for (i = 0; i < localStream.getAudioTracks().length; i++) {
+        //setStatus('using audio device "' + localStream.getAudioTracks()[i].label + '"');
+    }
+    for (i = 0; i < localStream.getVideoTracks().length; i++) {
+        //setStatus('using video device "' + localStream.getVideoTracks()[i].label + '"');
+    }
+    // mute video on firefox and recent canary
+    $('#minivideo')[0].muted = true;
+    $('#minivideo')[0].volume = 0;
+
+    RTC.attachMediaStream($('#minivideo'), localStream);
+
+    doConnect();
+}
+
+function onMediaFailure() {
+}
+
+function onCallIncoming(event, sid) {
+    //setStatus('incoming call' + sid);
+}
+
+function onCallActive(event, videoelem, sid) {
+    //setStatus('call active ' + sid);
+    //$(videoelem).appendTo('#largevideocontainer');
+    //arrangeVideos('#largevideocontainer >');
+}
+
+function onCallTerminated(event, sid, reason) {
+    //setStatus('call terminated ' + sid + (reason ? (': ' + reason) : ''));
+    //if (Object.keys(connection.jingle.sessions).length == 0) {
+    //    setStatus('all calls terminated');
+    //}
+    //$('#largevideocontainer #largevideo_' + sid).remove();
+    //arrangeVideos('#largevideocontainer >');
+}
+
+function onRemoteStreamAdded(event, data, sid) {
+    //setStatus('Remote stream for session ' + sid + ' added.');
+    //if ($('#largevideo_' + sid).length != 0) {
+    //    console.log('ignoring duplicate onRemoteStreamAdded...'); // FF 20
+    //    return;
+    //}
+    // after remote stream has been added, wait for ice to become connected
+    // old code for compat with FF22 beta
+    //var el = $("<video autoplay='autoplay' style='display:none'/>").attr('id', 'largevideo_' + sid);
+    //RTC.attachMediaStream(el, data.stream);
+    //waitForRemoteVideo(el, sid);
+}
+
+function waitForRemoteVideo(selector, sid) {
+    sess = connection.jingle.sessions[sid];
+    videoTracks = sess.remoteStream.getVideoTracks();
+    if (videoTracks.length === 0 || selector[0].currentTime > 0) {
+        $(document).trigger('callactive.jingle', [selector, sid]);
+        RTC.attachMediaStream(selector, sess.remoteStream); // FIXME: why do i have to do this for FF?
+        console.log('waitForremotevideo', sess.peerconnection.iceConnectionState, sess.peerconnection.signalingState);
+    } else {
+        setTimeout(function() { waitForRemoteVideo(selector, sid); }, 100);
+    }
+}
+
+
+function onRemoteStreamRemoved(event, data, sid) {
+    setStatus('Remote stream for session ' + sid + ' removed.');
+}
+
+function onIceConnectionStateChanged(event, sid, sess) {
+    console.log('ice state for', sid, sess.peerconnection.iceConnectionState);
+    console.log('sig state for', sid, sess.peerconnection.signalingState);
+    // works like charm, unfortunately only in chrome and FF nightly, not FF22 beta
+    /*
+    if (sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'connected') {
+        var el = $("<video autoplay='autoplay' style='display:none'/>").attr('id', 'largevideo_' + sid);
+        $(document).trigger('callactive.jingle', [el, sid]);
+        RTC.attachMediaStream(el, sess.remoteStream); // moving this before the trigger doesn't work in FF?!
+    }
+    */
+}
+
+function noStunCandidates(event) {
+    setStatus('webrtc did not encounter stun candidates, NAT traversal will not work');
+    console.warn('webrtc did not encounter stun candidates, NAT traversal will not work');
+}
+
