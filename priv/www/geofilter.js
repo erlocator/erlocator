@@ -135,6 +135,8 @@ function placeMarker(obj,draggable){
 	el += '<a target="_blank" href="'+obj.profileURL+'">Profile ';
 	if(typeof(obj.facebookid) != "undefined" && obj.facebookid != 0)el += ' <img class="fbimg" src="shout_facebook.png" alt="Facebook">';
 	el += '</a>';
+	if (client.id != obj.id) {
+		el += '<p><a target="_blank" href="javascript:videocall(' + "'" + obj.id + "');" +'">Videochat </a></p>';}
 	el += '</div>';
 	var infowindow = new InfoBox({
 		disableAutoPan: false,
@@ -229,10 +231,9 @@ function clearMap() {
 
 // XMPP
 
-function connect_xmpp() {
+function init_xmpp() {
    RTC = setupRTC();
    bindJingleEvents();
-   //getUserMediaWithConstraints(['audio', 'video']);
    connection = new Strophe.Connection(BOSH_SERVICE);
     if (RAWLOGGING) {
         connection.rawInput = function(data) { console.log('RECV: ' + data); };
@@ -243,7 +244,6 @@ function connect_xmpp() {
     connection.jingle.ice_config = ice_config;
     connection.jingle.MULTIPARTY = MULTIPARTY;
     connection.jingle.pc_constraints = RTC.pc_constraints;
-    connection.connect(client.id + '@' + DOMAIN, "", onConnect);
 }
 
 
@@ -366,6 +366,10 @@ function onNeighborIn(pres) {
    var from = pres.getAttribute('from'),
    	type = pres.getAttribute('type');
 	console.log("incoming presence from "  + from + ", type =" + type);
+    // Check if that's an incoming call initiation
+    if (Strophe.getDomainFromJid(from) == DOMAIN) {
+	connection.jingle.initiate(from, connection.jid);
+    }
     if (Strophe.getDomainFromJid(from) != CONFERENCEDOMAIN) { // only interested in MUC presence
 	return true;
     }
@@ -401,7 +405,7 @@ function onPresenceError(pres) {
 }
 
 function removeMarkers(geonum) {
-   Object.keys(neighbors).forEach(function(k) {if (neighbors[k] == geonum) {removeMarker(k)}});   
+   Object.keys(neighbors).forEach(function(k) {if (neighbors[k].geonum == geonum) {removeMarker(k)}});   
 }
 
 
@@ -440,12 +444,12 @@ function onMediaReady(event, stream) {
         //setStatus('using video device "' + localStream.getVideoTracks()[i].label + '"');
     }
     // mute video on firefox and recent canary
-    $('#minivideo')[0].muted = true;
-    $('#minivideo')[0].volume = 0;
+    $('#local_video')[0].muted = true;
+    $('#local_video')[0].volume = 0;
 
-    RTC.attachMediaStream($('#minivideo'), localStream);
+    RTC.attachMediaStream($('#local_video'), localStream);
 
-    doConnect();
+    connection.connect(client.id + '@' + DOMAIN + "/" + client.geonum, "", onConnect);
 }
 
 function onMediaFailure() {
@@ -479,8 +483,8 @@ function onRemoteStreamAdded(event, data, sid) {
     // after remote stream has been added, wait for ice to become connected
     // old code for compat with FF22 beta
     //var el = $("<video autoplay='autoplay' style='display:none'/>").attr('id', 'largevideo_' + sid);
-    //RTC.attachMediaStream(el, data.stream);
-    //waitForRemoteVideo(el, sid);
+    RTC.attachMediaStream($('#remote_video'), data.stream);
+    waitForRemoteVideo('#remote_video', sid);
 }
 
 function waitForRemoteVideo(selector, sid) {
@@ -518,3 +522,7 @@ function noStunCandidates(event) {
     console.warn('webrtc did not encounter stun candidates, NAT traversal will not work');
 }
 
+// Videocall
+function videocall(calleeId) {
+	connection.send($pres({'from': connection.jid, 'to': calleeId + "@" + DOMAIN + "/" + neighbors[calleeId]}));
+}

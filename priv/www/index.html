@@ -75,7 +75,9 @@
         position: relative;
         text-align: left;
     }
-    #minivideo {width:160px;height:120px;position:absolute;center:10px;top:10px;}
+    #local_video {width:100px;height:100px;position:absolute;center:10px;top:10px;}
+    #remote_video {width:100px;height:100px;position:absolute;right:10px;top:10px;}
+
     #numneighbors div{
         position: relative;
         width: 182px;
@@ -173,7 +175,10 @@ function fblogin() {
 <h1>Erlocator Demo</h1>
 </header>
 </div>
-<video id='minivideo' autoplay='autoplay'></video>
+<video id='local_video' autoplay='autoplay'></video>
+<video id='remote_video' autoplay='autoplay'></video>
+
+
 <div class="row">
     <div class="span12 mapwrap">
         <div id="googlemap"></div>
@@ -240,7 +245,7 @@ $(document).ready(function(){
         navigator.geolocation.getCurrentPosition(function(position) {
               client.lat = position.coords.latitude;
               client.lon = position.coords.longitude;
-              addClient(connect_xmpp);
+              addClient(init_xmpp);
               if(data.map){
                   data.map.setCenter(new google.maps.LatLng(client.lat ,client.lon));
                   placeMarker(client,true);
