@@ -408,7 +408,7 @@ function onPresenceError(pres) {
 }
 
 function removeMarkers(geonum) {
-   Object.keys(neighbors).forEach(function(k) {if (neighbors[k].geonum == geonum) {removeMarker(k)}});   
+   Object.keys(neighbors).forEach(function(k) {if (neighbors[k] == geonum) {removeMarker(k)}});   
 }
 
 
@@ -461,6 +461,7 @@ function onMediaFailure() {
 function onCallIncoming(event, sid) {
     //setStatus('incoming call' + sid);
     console.log('incoming call ' + sid);
+    console.debug('incoming call', connection.jingle.sessions);
     // uncomment next line to test termination.
     // the logic to reject the call could be put here
     //connection.jingle.terminate(sid, "decline", "Not in the mood");
