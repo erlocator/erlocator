@@ -136,7 +136,7 @@ function placeMarker(obj,draggable){
 	if(typeof(obj.facebookid) != "undefined" && obj.facebookid != 0)el += ' <img class="fbimg" src="shout_facebook.png" alt="Facebook">';
 	el += '</a>';
 	if (client.id != obj.id) {
-		el += '<p><a target="_blank" href="javascript:videocall(' + "'" + obj.id + "');" +'">Videochat </a></p>';}
+		el += '<p><a href="javascript:void(0)" onclick="videocall(' + "'" + obj.id + "');" +'">Videochat </a></p>';}
 	el += '</div>';
 	var infowindow = new InfoBox({
 		disableAutoPan: false,
@@ -233,7 +233,6 @@ function clearMap() {
 
 function init_xmpp() {
    RTC = setupRTC();
-   bindJingleEvents();
    connection = new Strophe.Connection(BOSH_SERVICE);
     if (RAWLOGGING) {
         connection.rawInput = function(data) { console.log('RECV: ' + data); };
@@ -244,6 +243,8 @@ function init_xmpp() {
     connection.jingle.ice_config = ice_config;
     connection.jingle.MULTIPARTY = MULTIPARTY;
     connection.jingle.pc_constraints = RTC.pc_constraints;
+
+    bindJingleEvents();
 }
 
 
@@ -258,6 +259,9 @@ function onConnect(status) {
         setStatus('Disconnected.');
         if (localStream) {
             localStream.stop();
+	    $("#local_video").hide();
+	    $("#local_video")[0].pause();
+	    turn_remote('off');
             localStream = null;
         }
     } else if (status == Strophe.Status.CONNECTED) {
@@ -313,7 +317,6 @@ function joinArea() {
 		removePresenceHandlers();
                 // Set up presence listeners for the "home" area
 		// Note: the listener for incoming 'available' presences being registered upon connection, as it doesn't depend on the "home room"
-		// TODO: consider remove dependency on "home room" and have the listener that ignores noise outside the grid
                 var home_room_jid = client.geonum + '@' + CONFERENCEDOMAIN  + '/' + client.id;
                 handlers.push(connection.addHandler(onNeighborOut, null, 'presence', 'unavailable', null, home_room_jid, {matchBare: true}));
                 handlers.push(connection.addHandler(onPresenceError, null, 'presence', 'error', null, home_room_jid, {matchBare: true}));
@@ -368,6 +371,7 @@ function onNeighborIn(pres) {
 	console.log("incoming presence from "  + from + ", type =" + type);
     // Check if that's an incoming call initiation
     if (Strophe.getDomainFromJid(from) == DOMAIN) {
+	console.log("You got a call from " + from);
 	connection.jingle.initiate(from, connection.jid);
     }
     if (Strophe.getDomainFromJid(from) != CONFERENCEDOMAIN) { // only interested in MUC presence
@@ -457,32 +461,21 @@ function onMediaFailure() {
 
 function onCallIncoming(event, sid) {
     //setStatus('incoming call' + sid);
+    
 }
 
 function onCallActive(event, videoelem, sid) {
     //setStatus('call active ' + sid);
     //$(videoelem).appendTo('#largevideocontainer');
     //arrangeVideos('#largevideocontainer >');
+    turn_remote('on');
 }
 
 function onCallTerminated(event, sid, reason) {
-    //setStatus('call terminated ' + sid + (reason ? (': ' + reason) : ''));
-    //if (Object.keys(connection.jingle.sessions).length == 0) {
-    //    setStatus('all calls terminated');
-    //}
-    //$('#largevideocontainer #largevideo_' + sid).remove();
-    //arrangeVideos('#largevideocontainer >');
+    turn_remote('off');
 }
 
 function onRemoteStreamAdded(event, data, sid) {
-    //setStatus('Remote stream for session ' + sid + ' added.');
-    //if ($('#largevideo_' + sid).length != 0) {
-    //    console.log('ignoring duplicate onRemoteStreamAdded...'); // FF 20
-    //    return;
-    //}
-    // after remote stream has been added, wait for ice to become connected
-    // old code for compat with FF22 beta
-    //var el = $("<video autoplay='autoplay' style='display:none'/>").attr('id', 'largevideo_' + sid);
     RTC.attachMediaStream($('#remote_video'), data.stream);
     waitForRemoteVideo('#remote_video', sid);
 }
@@ -507,22 +500,28 @@ function onRemoteStreamRemoved(event, data, sid) {
 function onIceConnectionStateChanged(event, sid, sess) {
     console.log('ice state for', sid, sess.peerconnection.iceConnectionState);
     console.log('sig state for', sid, sess.peerconnection.signalingState);
-    // works like charm, unfortunately only in chrome and FF nightly, not FF22 beta
-    /*
-    if (sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'connected') {
-        var el = $("<video autoplay='autoplay' style='display:none'/>").attr('id', 'largevideo_' + sid);
-        $(document).trigger('callactive.jingle', [el, sid]);
-        RTC.attachMediaStream(el, sess.remoteStream); // moving this before the trigger doesn't work in FF?!
+    if (sess.peerconnection.signalingState == 'closed' && sess.peerconnection.iceConnectionState == 'closed') {
+		turn_remote('off');
+    } else if (isess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'connected') {
+		turn_remote('on');
     }
-    */
 }
 
 function noStunCandidates(event) {
-    setStatus('webrtc did not encounter stun candidates, NAT traversal will not work');
     console.warn('webrtc did not encounter stun candidates, NAT traversal will not work');
 }
 
 // Videocall
 function videocall(calleeId) {
 	connection.send($pres({'from': connection.jid, 'to': calleeId + "@" + DOMAIN + "/" + neighbors[calleeId]}));
+}
+
+function turn_remote(status) {
+   if (status == 'off') {
+	$("#remote_video").hide(); 
+	$("#remote_video")[0].pause(); 
+   } else if (status == 'on') {
+	$("#remote_video").show(); 
+	$("#remote_video")[0].play(); 
+  }
 }
