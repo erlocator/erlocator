@@ -330,15 +330,20 @@ function joinArea() {
 		console.log("The new tiles:" + response.tiles);
 		
 		client.tiles.forEach(function(t) {
+			
+                        var roomjid = t + '@' + CONFERENCEDOMAIN + '/' + client.id;
                         if (response.tiles.indexOf(t) == -1) { //area to leave
-                                var roomjid = t + '@' + CONFERENCEDOMAIN + '/' + client.id;
                                 // Leave the room
 				console.log("Leaving " + roomjid);
 				removeMarkers(t);
                                 pres = $pres({to: roomjid, type: 'unavailable' })
                                         .c('x', {xmlns: 'http://jabber.org/protocol/muc'});
                                 connection.send(pres);
-                        }
+                        } else {
+				pres = $pres({to: roomjid })     
+                                        .c('x', {xmlns: 'http://jabber.org/protocol/muc'});
+                                connection.send(pres);  
+			}
                 });
 		response.tiles.forEach(function(t) {
 			if (client.tiles.indexOf(t) == -1) { //new area
