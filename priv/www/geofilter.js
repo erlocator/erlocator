@@ -8,7 +8,7 @@ var BOSH_SERVICE = 'http://50.19.39.227/http-bind',
     RTCPeerConnection = null,
     AUTOACCEPT = true,
     PRANSWER = false, // use either pranswer or autoaccept
-    RAWLOGGING = true,
+    RAWLOGGING = false,
     MULTIPARTY = true,
     localStream = null,
     connection = null,
@@ -460,27 +460,34 @@ function onMediaFailure() {
 
 function onCallIncoming(event, sid) {
     //setStatus('incoming call' + sid);
-    
+    console.log('incoming call ' + sid);
+    // uncomment next line to test termination.
+    // the logic to reject the call could be put here
+    //connection.jingle.terminate(sid, "decline", "Not in the mood");
 }
 
 function onCallActive(event, videoelem, sid) {
     //setStatus('call active ' + sid);
     //$(videoelem).appendTo('#largevideocontainer');
     //arrangeVideos('#largevideocontainer >');
+    console.debug('call active:' + sid);
     turn_remote('on');
 }
 
 function onCallTerminated(event, sid, reason) {
+    console.debug("Call terminated with " + reason);
     turn_remote('off');
 }
 
 function onRemoteStreamAdded(event, data, sid) {
+    console.log('remote stream added');
     RTC.attachMediaStream($('#remote_video'), data.stream);
     waitForRemoteVideo('#remote_video', sid);
 }
 
 function waitForRemoteVideo(selector, sid) {
     sess = connection.jingle.sessions[sid];
+    if (!sess) {return;}
     videoTracks = sess.remoteStream.getVideoTracks();
     if (videoTracks.length === 0 || selector[0].currentTime > 0) {
         $(document).trigger('callactive.jingle', [selector, sid]);
@@ -499,7 +506,9 @@ function onRemoteStreamRemoved(event, data, sid) {
 function onIceConnectionStateChanged(event, sid, sess) {
     console.log('ice state for', sid, sess.peerconnection.iceConnectionState);
     console.log('sig state for', sid, sess.peerconnection.signalingState);
-    if (sess.peerconnection.signalingState == 'closed' && sess.peerconnection.iceConnectionState == 'closed') {
+    if ((sess.peerconnection.signalingState == 'closed' && sess.peerconnection.iceConnectionState == 'closed') ||
+	(sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'disconnected')
+	) {
 		turn_remote('off');
     } else if (sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'connected') {
 		turn_remote('on');
