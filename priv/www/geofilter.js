@@ -372,7 +372,6 @@ function onNeighborIn(pres) {
     // Check if that's an incoming call initiation
     if (Strophe.getDomainFromJid(from) == DOMAIN) {
 	console.log("You got a call from " + from);
-	connection.jingle.initiate(from, connection.jid);
     }
     if (Strophe.getDomainFromJid(from) != CONFERENCEDOMAIN) { // only interested in MUC presence
 	return true;
@@ -502,7 +501,7 @@ function onIceConnectionStateChanged(event, sid, sess) {
     console.log('sig state for', sid, sess.peerconnection.signalingState);
     if (sess.peerconnection.signalingState == 'closed' && sess.peerconnection.iceConnectionState == 'closed') {
 		turn_remote('off');
-    } else if (isess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'connected') {
+    } else if (sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'connected') {
 		turn_remote('on');
     }
 }
@@ -513,7 +512,9 @@ function noStunCandidates(event) {
 
 // Videocall
 function videocall(calleeId) {
-	connection.send($pres({'from': connection.jid, 'to': calleeId + "@" + DOMAIN + "/" + neighbors[calleeId]}));
+//	connection.send($pres({'from': connection.jid, 'to': from}));
+
+	connection.jingle.initiate(calleeId + "@" + DOMAIN + "/" + neighbors[calleeId], connection.jid);
 }
 
 function turn_remote(status) {
