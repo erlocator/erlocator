@@ -140,7 +140,7 @@ function placeMarker(obj,draggable){
 	el += '</div>';
 	var infowindow = new InfoBox({
 		disableAutoPan: false,
-		maxWidth: 150,
+		maxWidth: 200,
 		zIndex: null,
 		boxStyle: {
 			opacity: 1,
@@ -244,8 +244,28 @@ function init_xmpp() {
     connection.jingle.MULTIPARTY = MULTIPARTY;
     connection.jingle.pc_constraints = RTC.pc_constraints;
 
-    bindJingleEvents();
-}
+    $(document).bind('mediaready.jingle', onMediaReady);
+    $(document).bind('mediafailure.jingle', onMediaFailure);
+    $(document).bind('callincoming.jingle', onCallIncoming);
+    $(document).bind('callactive.jingle', onCallActive);
+    $(document).bind('callterminated.jingle', onCallTerminated);
+
+    $(document).bind('remotestreamadded.jingle', onRemoteStreamAdded);
+    $(document).bind('remotestreamremoved.jingle', onRemoteStreamRemoved);
+    $(document).bind('iceconnectionstatechange.jingle', onIceConnectionStateChanged);
+    $(document).bind('nostuncandidates.jingle', noStunCandidates);
+    if (RTC != null) {
+        RTCPeerconnection = RTC.peerconnection;
+        if (RTC.browser == 'firefox') {
+            connection.jingle.media_constraints.mandatory['MozDontOfferDataChannel'] = true;
+        }
+        getUserMediaWithConstraints(['audio', 'video'], 180);
+    } else {
+        //setStatus('webrtc capable browser required');
+    }
+
+
+    }
 
 
 function onConnect(status) {
@@ -261,7 +281,7 @@ function onConnect(status) {
             localStream.stop();
 	    $("#local_video").hide();
 	    $("#local_video")[0].pause();
-	    turn_remote('off');
+	    //turn_remote('off');
             localStream = null;
         }
     } else if (status == Strophe.Status.CONNECTED) {
@@ -417,30 +437,6 @@ function removeMarkers(geonum) {
 }
 
 
-// Video
-function bindJingleEvents() {
-  $(document).bind('mediaready.jingle', onMediaReady);
-    $(document).bind('mediafailure.jingle', onMediaFailure);
-    $(document).bind('callincoming.jingle', onCallIncoming);
-    $(document).bind('callactive.jingle', onCallActive);
-    $(document).bind('callterminated.jingle', onCallTerminated);
-
-    $(document).bind('remotestreamadded.jingle', onRemoteStreamAdded);
-    $(document).bind('remotestreamremoved.jingle', onRemoteStreamRemoved);
-    $(document).bind('iceconnectionstatechange.jingle', onIceConnectionStateChanged);
-    $(document).bind('nostuncandidates.jingle', noStunCandidates);
-    if (RTC != null) {
-        RTCPeerconnection = RTC.peerconnection;
-        if (RTC.browser == 'firefox') {
-            connection.jingle.media_constraints.mandatory['MozDontOfferDataChannel'] = true;
-        }
-        getUserMediaWithConstraints(['audio', 'video']);
-    } else {
-        //setStatus('webrtc capable browser required');
-    }
-
-}
-
 // Jingle callbacks
 function onMediaReady(event, stream) {
     localStream = stream;
@@ -474,21 +470,28 @@ function onCallIncoming(event, sid) {
 
 function onCallActive(event, videoelem, sid) {
     //setStatus('call active ' + sid);
-    //$(videoelem).appendTo('#largevideocontainer');
-    //arrangeVideos('#largevideocontainer >');
+    $(videoelem).appendTo('#videocontainer');
     console.debug('call active:' + sid);
-    turn_remote('on');
+    turn_remote(sid, 'on');
 }
 
 function onCallTerminated(event, sid, reason) {
     console.debug("Call terminated with " + reason);
-    turn_remote('off');
+    turn_remote(sid, 'off');
 }
 
 function onRemoteStreamAdded(event, data, sid) {
     console.log('remote stream added');
-    RTC.attachMediaStream($('#remote_video'), data.stream);
-    waitForRemoteVideo('#remote_video', sid);
+    var el = $("<video class='remote_video' autoplay='autoplay' />").attr('id', 'video_' + sid);
+    //var videoDiv = $("<div class='remote_video'></div>");
+    el.appendTo($("#videocontainer"));
+    //videoDiv.appendTo($('#videocontainer'));
+    RTC.attachMediaStream(el, data.stream);
+    el.height(120);
+    el.width(120);
+    el.css("padding", 15);
+    el.css("display", "inline-block");
+    //waitForRemoteVideo(el, sid);
 }
 
 function waitForRemoteVideo(selector, sid) {
@@ -515,9 +518,9 @@ function onIceConnectionStateChanged(event, sid, sess) {
     if ((sess.peerconnection.signalingState == 'closed' && sess.peerconnection.iceConnectionState == 'closed') ||
 	(sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'disconnected')
 	) {
-		turn_remote('off');
+		turn_remote(sid, 'off');
     } else if (sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'connected') {
-		turn_remote('on');
+		turn_remote(sid, 'on');
     }
 }
 
@@ -532,12 +535,15 @@ function videocall(calleeId) {
 	connection.jingle.initiate(calleeId + "@" + DOMAIN + "/" + neighbors[calleeId], connection.jid);
 }
 
-function turn_remote(status) {
-   if (status == 'off') {
-	$("#remote_video").hide(); 
-	$("#remote_video")[0].pause(); 
-   } else if (status == 'on') {
-	$("#remote_video").show(); 
-	$("#remote_video")[0].play(); 
+function turn_remote(sid, status) {
+   console.log("Turn remote to " + status, "sid:" + sid);
+ 
+   var remote_id = "#video_" + sid;
+   if (status == 'off' && $(remote_id).length != 0) {
+	$(remote_id).hide(); 
+	$(remote_id)[0].pause(); 
+   } else if (status == 'on' && $(remote_id).length != 0) {
+	$(remote_id).show(); 
+	$(remote_id)[0].play(); 
   }
 }

@@ -13,7 +13,6 @@
         <link href="bootstrap-responsive.min.css" rel="stylesheet"/>
 	<link rel="shortcut icon" href="/favicon.ico" />
 	<script type="text/javascript" src="geofilter.js" />
-	<script type="text/javascript" src="muc.js" />
         <script type="text/javascript" src="https://getfirebug.com/firebug-lite-debug.js">{
             overrideConsole: false,
             startOpened: false
@@ -75,8 +74,10 @@
         position: relative;
         text-align: left;
     }
-    #local_video {width:100px;height:100px;position:absolute;center:10px;top:10px;}
-    #remote_video {width:100px;height:100px;position:absolute;right:10px;top:10px;}
+    #local_video {width:200px;height:200px;padding:15px; position:absolute;center:10px;top:10px; border: 2px solid red;}
+    #remote_video {width:100px;height:100px;position:relative;}
+
+    #videocontainer {width:80%;height:10%; top:10x;position:relative;}
 
     #numneighbors div{
         position: relative;
@@ -176,8 +177,6 @@ function fblogin() {
 </header>
 </div>
 <video id='local_video' autoplay='autoplay'></video>
-<video id='remote_video' autoplay='autoplay'></video>
-
 
 <div class="row">
     <div class="span12 mapwrap">
@@ -191,6 +190,11 @@ function fblogin() {
 
         </div>
     </div>
+
+<div id="videocontainer">
+	<video id='local_video' autoplay='autoplay'></video>
+</div>
+
 </div>
 </div>
 
