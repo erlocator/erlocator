@@ -260,7 +260,8 @@ function init_xmpp() {
         if (RTC.browser == 'firefox') {
             connection.jingle.media_constraints.mandatory['MozDontOfferDataChannel'] = true;
         }
-        getUserMediaWithConstraints(['audio', 'video']);
+	// Connect to XMPP server
+    	connection.connect(client.id + '@' + DOMAIN + "/" + client.geonum, "", onConnect);
     } else {
         //setStatus('webrtc capable browser required');
     }
@@ -326,6 +327,9 @@ function onGetStunAndTurn(iceservers) {
         }
 	// Don't need TURN service, disconnect
 	turn_service_connection.disconnect(); 
+	// Initialize local media
+	getUserMediaWithConstraints(['audio', 'video']);
+
 }
 
 function setStatus(txt) {
@@ -456,7 +460,6 @@ function onMediaReady(event, stream) {
 
     RTC.attachMediaStream($('#local_video'), localStream);
 
-    connection.connect(client.id + '@' + DOMAIN + "/" + client.geonum, "", onConnect);
 }
 
 function onMediaFailure() {
