@@ -74,7 +74,7 @@
         position: relative;
         text-align: left;
     }
-    #local_video {width:200px;height:200px;padding:15px; position:absolute;center:10px;top:10px; border: 2px solid red;}
+    #local_video {width:200px;height:200px;padding:15px;}
     #remote_video {width:100px;height:100px;position:relative;}
 
     #videocontainer {width:80%;height:10%; top:10x;position:relative;}
@@ -85,7 +85,7 @@
     }
     .map_info {
     	width : 280px;
-    	height: 60px;
+    	height: 80px;
     	background: white;
     }
     .map_info div{
@@ -176,9 +176,13 @@ function fblogin() {
 <h1>Erlocator Demo</h1>
 </header>
 </div>
-<video id='local_video' autoplay='autoplay'></video>
 
 <div class="row">
+<div id="videocontainer">
+	<video id='local_video' autoplay='autoplay'></video>
+</div>
+
+
     <div class="span12 mapwrap">
         <div id="googlemap"></div>
         <div id="clientform" class="rounded_corners">
@@ -190,10 +194,6 @@ function fblogin() {
 
         </div>
     </div>
-
-<div id="videocontainer">
-	<video id='local_video' autoplay='autoplay'></video>
-</div>
 
 </div>
 </div>

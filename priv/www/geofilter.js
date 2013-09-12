@@ -136,11 +136,12 @@ function placeMarker(obj,draggable){
 	if(typeof(obj.facebookid) != "undefined" && obj.facebookid != 0)el += ' <img class="fbimg" src="shout_facebook.png" alt="Facebook">';
 	el += '</a>';
 	if (client.id != obj.id) {
-		el += '<p><a href="javascript:void(0)" onclick="videocall(' + "'" + obj.id + "');" +'">Videochat </a></p>';}
-	el += '</div>';
+		el += '<p><a href="javascript:void(0)" onclick="videocall(' + "'" + obj.id + "');" +'">Videochat</a></p>';}
+	el += '</span></div>';
 	var infowindow = new InfoBox({
 		disableAutoPan: false,
 		maxWidth: 200,
+		maxHeight: 500,
 		zIndex: null,
 		boxStyle: {
 			opacity: 1,
@@ -259,7 +260,7 @@ function init_xmpp() {
         if (RTC.browser == 'firefox') {
             connection.jingle.media_constraints.mandatory['MozDontOfferDataChannel'] = true;
         }
-        getUserMediaWithConstraints(['audio', 'video'], 180);
+        getUserMediaWithConstraints(['audio', 'video']);
     } else {
         //setStatus('webrtc capable browser required');
     }
@@ -448,6 +449,8 @@ function onMediaReady(event, stream) {
         //setStatus('using video device "' + localStream.getVideoTracks()[i].label + '"');
     }
     // mute video on firefox and recent canary
+    $('#local_video').width(200);
+    $('#local_video').height(200);
     $('#local_video')[0].muted = true;
     $('#local_video')[0].volume = 0;
 
