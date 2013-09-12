@@ -263,7 +263,7 @@ function init_xmpp() {
 	// Connect to XMPP server
     	connection.connect(client.id + '@' + DOMAIN + "/" + client.geonum, "", onConnect);
     } else {
-        //setStatus('webrtc capable browser required');
+        setStatus('webrtc capable browser required');
     }
 
 
@@ -308,9 +308,9 @@ function onTurnConnect(status) {
     } else if (status == Strophe.Status.CONNFAIL) {
         setStatus('TURN/STUN service: Connecting failed.');
     } else if (status == Strophe.Status.DISCONNECTING) {
-        setStatus('TURN/STUN service: Disconnecting.');
+        console.debug('TURN/STUN service: Disconnecting.');
     } else if (status == Strophe.Status.DISCONNECTED) {
-        setStatus('TURN/STUN service: Disconnected.');
+        console.debug('TURN/STUN service: Disconnected.');
     } else if (status == Strophe.Status.CONNECTED) {
         setStatus('TURN/STUN service connected.');
         turn_service_connection.jingle.getStunAndTurnCredentials(onGetStunAndTurn);
@@ -328,12 +328,14 @@ function onGetStunAndTurn(iceservers) {
 	// Don't need TURN service, disconnect
 	turn_service_connection.disconnect(); 
 	// Initialize local media
+        setStatus('Please allow the page to use your camera and mic');
 	getUserMediaWithConstraints(['audio', 'video']);
 
 }
 
 function setStatus(txt) {
     console.log('status', txt);
+    $('#status').text(txt);
 }
 
 function joinArea() {
@@ -459,6 +461,7 @@ function onMediaReady(event, stream) {
     $('#local_video')[0].volume = 0;
 
     RTC.attachMediaStream($('#local_video'), localStream);
+    setStatus('The local media is ready for chatting');
 
 }
 
@@ -482,12 +485,12 @@ function onCallActive(event, videoelem, sid) {
 }
 
 function onCallTerminated(event, sid, reason) {
-    console.debug("Call terminated with " + reason);
+    setStatus("Call terminated with " + reason);
     turn_remote(sid, 'off');
 }
 
 function onRemoteStreamAdded(event, data, sid) {
-    console.log('remote stream added');
+    setStatus('remote stream added');
     var el = $("<video class='remote_video' autoplay='autoplay' />").attr('id', 'video_' + sid);
     //var videoDiv = $("<div class='remote_video'></div>");
     el.appendTo($("#videocontainer"));
