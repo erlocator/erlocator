@@ -8,7 +8,7 @@ var BOSH_SERVICE = 'http://50.19.39.227/http-bind',
     RTCPeerConnection = null,
     AUTOACCEPT = true,
     PRANSWER = false, // use either pranswer or autoaccept
-    RAWLOGGING = false,
+    RAWLOGGING = true,
     MULTIPARTY = true,
     localStream = null,
     connection = null,
@@ -469,9 +469,12 @@ function onMediaFailure() {
 }
 
 function onCallIncoming(event, sid) {
-    //setStatus('incoming call' + sid);
-    console.log('incoming call ' + sid);
-    console.debug('incoming call', connection.jingle.sessions);
+    var session = connection.jingle.sessions[sid];
+    if (session.me == session.initiator) { 
+    setStatus('The user ' + Strophe.getNodeFromJid(responder) + 'is responding...');} else {
+    setStatus('The user ' + Strophe.getNodeFormJid(initiator) + 'is calling...');
+}
+    console.debug('incoming call', connection.jingle.sessions[sid]);
     // uncomment next line to test termination.
     // the logic to reject the call could be put here
     //connection.jingle.terminate(sid, "decline", "Not in the mood");
@@ -539,8 +542,7 @@ function noStunCandidates(event) {
 
 // Videocall
 function videocall(calleeId) {
-//	connection.send($pres({'from': connection.jid, 'to': from}));
-
+  setStatus("Calling your neighbor (id=" + calleeId + ")...");
 	connection.jingle.initiate(calleeId + "@" + DOMAIN + "/" + neighbors[calleeId], connection.jid);
 }
 
