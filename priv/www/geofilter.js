@@ -496,9 +496,9 @@ function onCallTerminated(event, sid, reason) {
 
 function onRemoteStreamAdded(event, data, sid) {
     setStatus('remote stream added');
-    var el = $("<video class='remote_video' autoplay='autoplay' />").attr('id', 'video_' + sid);
-    //var videoDiv = $("<div class='remote_video'></div>");
-    el.appendTo($("#videocontainer"));
+    var el = $("<video class='remote_video' autoplay='autoplay'><track label='TEST' /></video>").attr('id', 'video_' + sid);
+//    var videoDiv = $("<span>TEST</header></span>");
+    el.appendTo($('#videocontainer'));
     //videoDiv.appendTo($('#videocontainer'));
     RTC.attachMediaStream(el, data.stream);
     el.height(120);
@@ -512,7 +512,7 @@ function onRemoteStreamAdded(event, data, sid) {
     } else {
       chatter = session.initiator;
     }
-    setStatus('Videochat with ' + chatter + ' is active');
+    setStatus('Videochat with ' + Strophe.getNodeFromJid(chatter) + ' is active');
     //waitForRemoteVideo(el, sid);
 }
 
