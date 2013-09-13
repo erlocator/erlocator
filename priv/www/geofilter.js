@@ -472,10 +472,11 @@ function onMediaFailure() {
 function onCallIncoming(event, sid) {
     var session = connection.jingle.sessions[sid];
     if (session.me == session.initiator) { 
-    setStatus('The user ' + Strophe.getNodeFromJid(responder) + 'is responding...');} else {
-    setStatus('The user ' + Strophe.getNodeFormJid(initiator) + 'is calling...');
-}
-    console.debug('incoming call', connection.jingle.sessions[sid]);
+      setStatus('The user ' + Strophe.getNodeFromJid(session.responder) + ' is responding...');
+    } else {
+      setStatus('The user ' + Strophe.getNodeFromJid(session.initiator) + ' is calling...');
+    }
+    //setStatus('Incoming call');
     // uncomment next line to test termination.
     // the logic to reject the call could be put here
     //connection.jingle.terminate(sid, "decline", "Not in the mood");
@@ -504,6 +505,14 @@ function onRemoteStreamAdded(event, data, sid) {
     el.width(120);
     el.css("padding", 15);
     el.css("display", "inline-block");
+    var session = connection.jingle.sessions[sid];
+    var chatter = null;
+    if (session.me == session.initiator) {  
+      chatter = session.responder;
+    } else {
+      chatter = session.initiator;
+    }
+    setStatus('Videochat with ' + chatter + ' is active');
     //waitForRemoteVideo(el, sid);
 }
 
