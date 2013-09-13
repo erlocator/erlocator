@@ -62,8 +62,9 @@ start(Opts) ->
             transient, 2000, supervisor, [cuesport | ChildMods]})
     end),
     %% The background process to clean up expired records
-    {ok, _TRef} = timer:apply_interval(proplists:get_value(cleanup_interval, Opts, ?DEFAULT_CLEANUP_INTERVAL),
-        geofilter, cleanup_expired, [proplists:get_value(expiration_interval, Opts, ?DEFAULT_EXPIRATION)]).
+    %%{ok, _TRef} = timer:apply_interval(proplists:get_value(cleanup_interval, Opts, ?DEFAULT_CLEANUP_INTERVAL),
+    %%    geofilter, cleanup_expired, [proplists:get_value(expiration_interval, Opts, ?DEFAULT_EXPIRATION)]),
+	ok.
 
 %% @doc Return bounding box coordinates for a single region.
 -spec bbox(integer()) -> {tuple(), tuple()}.		
