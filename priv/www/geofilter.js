@@ -471,10 +471,11 @@ function onMediaFailure() {
 
 function onCallIncoming(event, sid) {
     var session = connection.jingle.sessions[sid];
+    if (!session) return;
     if (session.me == session.initiator) { 
-      setStatus('The user ' + Strophe.getNodeFromJid(session.responder) + ' is responding...');
+      setStatus('The user ' + session.responder + ' is responding...');
     } else {
-      setStatus('The user ' + Strophe.getNodeFromJid(session.initiator) + ' is calling...');
+      setStatus('The user ' + session.initiator + ' is calling...');
     }
     //setStatus('Incoming call');
     // uncomment next line to test termination.
@@ -490,13 +491,33 @@ function onCallActive(event, videoelem, sid) {
 }
 
 function onCallTerminated(event, sid, reason) {
-    setStatus("Call terminated with " + reason);
+    chatter = get_chatter(sid);
+    if (reason == "success") {
+	setStatus(chatter + " hung up on you...");
+    } else {
+        setStatus("Call with " + chatter + " terminated with reason '" + reason + "'");
+    }
     turn_remote(sid, 'off');
 }
 
+function get_chatter(sid) {
+    var session = connection.jingle.sessions[sid];
+    return get_chatter_s(session);
+}
+
+function get_chatter_s(session) {
+    if (!session) return undefined;
+    if (session.me == session.initiator) {  
+      return session.responder;
+    } else {
+      return session.initiator;
+    }
+}
+
 function onRemoteStreamAdded(event, data, sid) {
+    var chatter = get_chatter(sid);
     setStatus('remote stream added');
-    var el = $("<video class='remote_video' autoplay='autoplay'><track label='TEST' /></video>").attr('id', 'video_' + sid);
+    var el = $("<video class='remote_video' autoplay='autoplay' controls='true' style='display:none;'></video>").attr('id', 'video_' + sid);
 //    var videoDiv = $("<span>TEST</header></span>");
     el.appendTo($('#videocontainer'));
     //videoDiv.appendTo($('#videocontainer'));
@@ -505,15 +526,13 @@ function onRemoteStreamAdded(event, data, sid) {
     el.width(120);
     el.css("padding", 15);
     el.css("display", "inline-block");
-    var session = connection.jingle.sessions[sid];
-    var chatter = null;
-    if (session.me == session.initiator) {  
-      chatter = session.responder;
-    } else {
-      chatter = session.initiator;
-    }
-    setStatus('Videochat with ' + Strophe.getNodeFromJid(chatter) + ' is active');
-    //waitForRemoteVideo(el, sid);
+    el.bind("pause", function() {
+       connection.jingle.terminate(sid);
+    });
+    
+    el.bind("play", function() {
+	setStatus('Videochat with ' + chatter + ' is active');
+    }); 
 }
 
 function waitForRemoteVideo(selector, sid) {
@@ -540,6 +559,7 @@ function onIceConnectionStateChanged(event, sid, sess) {
     if ((sess.peerconnection.signalingState == 'closed' && sess.peerconnection.iceConnectionState == 'closed') ||
 	(sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'disconnected')
 	) {
+		setStatus("Call with " + get_chatter_s(sess) + " has been terminated");
 		turn_remote(sid, 'off');
     } else if (sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'connected') {
 		turn_remote(sid, 'on');
