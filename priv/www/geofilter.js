@@ -255,13 +255,14 @@ function init_xmpp() {
     $(document).bind('remotestreamremoved.jingle', onRemoteStreamRemoved);
     $(document).bind('iceconnectionstatechange.jingle', onIceConnectionStateChanged);
     $(document).bind('nostuncandidates.jingle', noStunCandidates);
+$(document).bind('error.jingle', onJingleError);
     if (RTC != null) {
         RTCPeerconnection = RTC.peerconnection;
         if (RTC.browser == 'firefox') {
             connection.jingle.media_constraints.mandatory['MozDontOfferDataChannel'] = true;
         }
 	// Connect to XMPP server
-    	connection.connect(client.id + '@' + DOMAIN + "/" + client.geonum, "", onConnect);
+    	connection.connect(client.id + '@' + DOMAIN + "/" + client.id, "", onConnect);
     } else {
         setStatus('webrtc capable browser required');
     }
@@ -543,7 +544,7 @@ function noStunCandidates(event) {
 // Videocall
 function videocall(calleeId) {
   setStatus("Calling your neighbor (id=" + calleeId + ")...");
-	connection.jingle.initiate(calleeId + "@" + DOMAIN + "/" + neighbors[calleeId], connection.jid);
+	connection.jingle.initiate(calleeId + "@" + DOMAIN + "/" + calleeId, connection.jid);
 }
 
 function turn_remote(sid, status) {
@@ -557,4 +558,8 @@ function turn_remote(sid, status) {
 	$(remote_id).show(); 
 	$(remote_id)[0].play(); 
   }
+}
+
+function onJingleError(sid, error) {
+    setStatus("Jingle error:" + error + " ,sid=" + sid);
 }
