@@ -47,14 +47,15 @@ function getNeighborInfo(userId){
                 if(typeof(neighbor.imageURL) == "undefined")neighbor.imageURL = "http://erlocator.org/geonum/demo/defaultsmall.gif";
                 if(typeof(neighbor.profileURL) == "undefined")neighbor.profileURL = "http://erlocator.org";
                 placeMarker(neighbor);
+		setStatus(neighbor.name + ' has come online...');
 		// Store neighbor with geonum, so we can do area cleanups later
-		storeNeighbor(neighbor.geonum, neighbor.id);
+		storeNeighbor(neighbor, neighbor.id);
              }
     });
 }
 
-function storeNeighbor(geonum, id) {
-	neighbors["" + id] = geonum;
+function storeNeighbor(obj, id) {
+	neighbors[id] = obj;
 } 
 
 function removeNeighbor(id) {
@@ -417,7 +418,6 @@ function onNeighborIn(pres) {
     }
     var neighborId = Strophe.getResourceFromJid(from);
     if (neighborId && neighborId != client.id) {
-        console.log('Neighbor ' + neighborId + ' has come online...');
 	getNeighborInfo(neighborId);
     }
     return true;
@@ -429,7 +429,7 @@ function onNeighborOut(pres) {
 	console.log("incoming unavailable presence from " + from + ", type =" + type);
     var neighborId = Strophe.getResourceFromJid(from);
     if (neighborId && neighborId != client.id) {
-        console.log('Neighbor ' + neighborId + ' has left...');
+        setStatus(neighbors[neighborId].name + ' has left the area...');
         removeMarker(neighborId);
     }
     return true;
@@ -441,7 +441,7 @@ function onPresenceError(pres) {
 }
 
 function removeMarkers(geonum) {
-   Object.keys(neighbors).forEach(function(k) {if (neighbors[k] == geonum) {removeMarker(k)}});   
+   Object.keys(neighbors).forEach(function(k) {if (neighbors[k].geonum == geonum) {removeMarker(k)}});   
 }
 
 
@@ -462,7 +462,7 @@ function onMediaReady(event, stream) {
     $('#local_video')[0].volume = 0;
 
     RTC.attachMediaStream($('#local_video'), localStream);
-    setStatus('The local media is ready for chatting');
+    setStatus('The local media is ready for videochat');
 
 }
 
@@ -472,10 +472,10 @@ function onMediaFailure() {
 function onCallIncoming(event, sid) {
     var session = connection.jingle.sessions[sid];
     if (!session) return;
-    if (session.me == session.initiator) { 
-      setStatus('The user ' + session.responder + ' is responding...');
+    if (session.responder && session.me == session.initiator) { 
+      setStatus('The user ' + getUserNameById(Strophe.getNodeFromJid(session.responder)) + ' is responding...');
     } else {
-      setStatus('The user ' + session.initiator + ' is calling...');
+      setStatus('The user ' + getUserNameById(Strophe.getNodeFromJid(session.initiator)) + ' is calling...');
     }
     //setStatus('Incoming call');
     // uncomment next line to test termination.
@@ -491,11 +491,13 @@ function onCallActive(event, videoelem, sid) {
 }
 
 function onCallTerminated(event, sid, reason) {
-    chatter = get_chatter(sid);
+    var chatter = get_chatter(sid);
+    if (!chatter) return;
+    var chatterName = getUserNameById(Strophe.getNodeFromJid(chatter));
     if (reason == "success") {
-	setStatus(chatter + " hung up on you...");
+	setStatus(chatterName + " hung up on you...");
     } else {
-        setStatus("Call with " + chatter + " terminated with reason '" + reason + "'");
+        setStatus("Call with " + chatterName + " terminated with reason '" + reason + "'");
     }
     turn_remote(sid, 'off');
 }
@@ -531,7 +533,7 @@ function onRemoteStreamAdded(event, data, sid) {
     });
     
     el.bind("play", function() {
-	setStatus('Videochat with ' + chatter + ' is active');
+	setStatus('Videochat with ' + getUserNameById(Strophe.getNodeFromJid(chatter)) + ' is active');
     }); 
 }
 
@@ -559,7 +561,7 @@ function onIceConnectionStateChanged(event, sid, sess) {
     if ((sess.peerconnection.signalingState == 'closed' && sess.peerconnection.iceConnectionState == 'closed') ||
 	(sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'disconnected')
 	) {
-		setStatus("Call with " + get_chatter_s(sess) + " has been terminated");
+		setStatus("Call with " + getUserNameById(Strophe.getNodeFromJid(get_chatter_s(sess))) + " has been terminated");
 		turn_remote(sid, 'off');
     } else if (sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'connected') {
 		turn_remote(sid, 'on');
@@ -572,7 +574,7 @@ function noStunCandidates(event) {
 
 // Videocall
 function videocall(calleeId) {
-  setStatus("Calling your neighbor (id=" + calleeId + ")...");
+  setStatus("Calling " + getUserNameById(calleeId) + "...");
 	connection.jingle.initiate(calleeId + "@" + DOMAIN + "/" + calleeId, connection.jid);
 }
 
@@ -591,4 +593,12 @@ function turn_remote(sid, status) {
 
 function onJingleError(sid, error) {
     setStatus("Jingle error:" + error + " ,sid=" + sid);
+}
+
+function getUserNameById(id) {
+    if (id) {
+	return neighbors[id].name;
+    } else {
+	return "Unknown";
+    }
 }
