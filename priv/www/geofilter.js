@@ -524,7 +524,7 @@ function onRemoteStreamAdded(event, data, sid) {
     RTC.attachMediaStream(el, data.stream);
     el.height(120);
     el.width(120);
-    el.css("padding", 15);
+    el.css("padding", 24);
     el.css("display", "inline-block");
     el.bind("pause", function() {
        connection.jingle.terminate(sid);
