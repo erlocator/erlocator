@@ -308,7 +308,7 @@ $(document).ready(function(){
         }else{
 		    $('#profile_link').val(client.profileURL);
         }
-        addClient();
+        addClient(push_presence);
         placeMarker(client,true);
     });
     $('#name').val(client.name);

@@ -365,11 +365,11 @@ function joinArea() {
                                 // Leave the room
 				console.log("Leaving " + roomjid);
 				removeMarkers(t);
-                                pres = $pres({to: roomjid, type: 'unavailable' })
+                                var pres = $pres({to: roomjid, type: 'unavailable' })
                                         .c('x', {xmlns: 'http://jabber.org/protocol/muc'});
                                 connection.send(pres);
                         } else {
-				pres = $pres({to: roomjid })     
+				var pres = $pres({to: roomjid })     
                                         .c('x', {xmlns: 'http://jabber.org/protocol/muc'});
                                 connection.send(pres);  
 			}
@@ -379,7 +379,7 @@ function joinArea() {
 				var roomjid = t + '@' + CONFERENCEDOMAIN + '/' + client.id;
 		                // Join the room
 				console.log("Joining " + roomjid);
-                        	pres = $pres({to: roomjid })
+                        	var pres = $pres({to: roomjid })
                                 	.c('x', {xmlns: 'http://jabber.org/protocol/muc'});
                         	connection.send(pres);
 			}
@@ -529,8 +529,12 @@ function onRemoteStreamAdded(event, data, sid) {
     el.css("padding", 24);
     el.css("display", "inline-block");
     el.bind("pause", function() {
+       turn_remote(sid, 'off');
        connection.jingle.terminate(sid);
     });
+ 
+    el.bind("error", function() {turn_remote(sid, 'off'); });
+    el.bind("abort", function() {turn_remote(sid, 'off'); });
     
     el.bind("play", function() {
 	setStatus('Videochat with ' + getUserNameById(Strophe.getNodeFromJid(chatter)) + ' is active');
@@ -602,3 +606,15 @@ function getUserNameById(id) {
 	return "Unknown";
     }
 }
+
+// Push presence to geonums 
+// This will update our info for all the neighbors
+function push_presence() {
+	client.tiles.forEach(function(t) {
+                        var roomjid = t + '@' + CONFERENCEDOMAIN + '/' + client.id;
+				var pres = $pres({to: roomjid })     
+                                        .c('x', {xmlns: 'http://jabber.org/protocol/muc'});
+                                connection.send(pres);  
+                });
+}
+
