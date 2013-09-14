@@ -565,7 +565,7 @@ function onIceConnectionStateChanged(event, sid, sess) {
     if ((sess.peerconnection.signalingState == 'closed' && sess.peerconnection.iceConnectionState == 'closed') ||
 	(sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'disconnected')
 	) {
-		setStatus("Videocall has been terminated");
+		setStatus("Videocall has been terminated"); //TODO: include user name; the problem is that the neighbor record may have already be gone, so would probably require some additional data structure (sid -> user?)
 		turn_remote(sid, 'off');
     } else if (sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'connected') {
 		turn_remote(sid, 'on');
