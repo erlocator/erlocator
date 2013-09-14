@@ -247,8 +247,10 @@ $(document).ready(function(){
     //placeMarker(client,true);
     if(navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
-              client.lat = position.coords.latitude;
-              client.lon = position.coords.longitude;
+	      var latParam = getURLParameter("lat");
+              client.lat = latParam? latParam : position.coords.latitude;
+	      var lonParam = getURLParameter("lon");
+              client.lon = lonParam? lonParam : position.coords.longitude;
               addClient(init_xmpp);
               if(data.map){
                   data.map.setCenter(new google.maps.LatLng(client.lat ,client.lon));
