@@ -162,7 +162,6 @@ function fblogin() {
                 client.profileURL = "//facebook.com/" + response.id;
                 client.imageURL = "//graph.facebook.com/" + response.id + "/picture";
                 addClient(push_presence);
-        		placeMarker(client,true);
             });
         } else {
             // cancelled - do nothing
@@ -257,7 +256,7 @@ $(document).ready(function(){
               }
         }, function() {
 
-        }, {maximumAge:30000, timeout: 5000});
+        }, {maximumAge:30000, timeout: 10000});
     } else {
         // Browser doesn't support Geolocation
     }
