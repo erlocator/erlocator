@@ -1,11 +1,9 @@
 <html>
 <head>
-<link rel="canonical" href="/geonum/demo/index.html?lat=40.72586&lon=-74.006052"/>
-<noscript>
-<meta http-equiv="refresh" content="0;URL=/geonum/demo/index.html?lat=40.72586&lon=-74.006052">
-</noscript>
 <script type="text/javascript">
-        var url = "/geonum/demo/index.html?lat=40.72586&lon=-74.006052";
+        var latitude = 40.72586 + (Math.random() * .03);
+        var longitude = -74.006052 + (Math.random() * .03);
+        var url = "/geonum/demo/index.html?lat=" + latitude + "&lon=" + longitude;
 
         // IE8 and lower fix
         if (navigator.userAgent.match(/MSIE\s(?!9.0)/))
