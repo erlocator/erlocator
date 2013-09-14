@@ -313,6 +313,9 @@ $(document).ready(function(){
     $('#name').val(client.name);
 });
 
+window.onbeforeunload = function() {
+  removeClient(client.id);
+}
 </script>
 </body>
 </html>
