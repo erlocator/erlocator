@@ -565,7 +565,7 @@ function onIceConnectionStateChanged(event, sid, sess) {
     if ((sess.peerconnection.signalingState == 'closed' && sess.peerconnection.iceConnectionState == 'closed') ||
 	(sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'disconnected')
 	) {
-		setStatus("Call with " + getUserNameById(Strophe.getNodeFromJid(get_chatter_s(sess))) + " has been terminated");
+		setStatus("Videocall has been terminated");
 		turn_remote(sid, 'off');
     } else if (sess.peerconnection.signalingState == 'stable' && sess.peerconnection.iceConnectionState == 'connected') {
 		turn_remote(sid, 'on');
