@@ -58,8 +58,13 @@
         position: relative;
         margin-left: 20px;
         width : 98.2%;
-        height : 130px;
+        height : 200px;
         border: 1px solid blue;
+        padding: 0px;
+    }
+    .vid{
+        margin-top: 0px;
+        margin-left: 20px;
     }
     .stat{
         margin-left: 20px;
@@ -93,8 +98,8 @@
         position: relative;
         text-align: left;
     }
-    #local_video {width:120px;height:120px;padding:5px;}
-    #remote_video {width:100px;height:100px;position:relative;}
+    #local_video {width:120px;height:120px;padding:0px;position:relative;}
+    #remote_video {width:100px;height:100px;padding:0px;position:relative;}
 
     #numneighbors div{
         position: relative;
@@ -196,7 +201,7 @@ function fblogin() {
 
 <div class="row" style="width:80%; margin-right:auto; margin-left:auto">
 <div id="videocontainer" class="vidwrap">
-	<video id='local_video' autoplay='autoplay'></video>
+	<video id='local_video' class='vid' autoplay='autoplay'></video>
 </div>
 <div id='status' class='stat'></div>
 

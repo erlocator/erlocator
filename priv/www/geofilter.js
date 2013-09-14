@@ -519,7 +519,7 @@ function get_chatter_s(session) {
 function onRemoteStreamAdded(event, data, sid) {
     var chatter = get_chatter(sid);
     setStatus('remote stream added');
-    var el = $("<video class='remote_video' autoplay='autoplay' controls='true' style='display:none;'></video>").attr('id', 'video_' + sid);
+    var el = $("<video class='remote_video vid' autoplay='autoplay' controls='true' style='display:none;'></video>").attr('id', 'video_' + sid);
 //    var videoDiv = $("<span>TEST</header></span>");
     el.appendTo($('#videocontainer'));
     //videoDiv.appendTo($('#videocontainer'));
