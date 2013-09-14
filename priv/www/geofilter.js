@@ -600,7 +600,7 @@ function onJingleError(sid, error) {
 }
 
 function getUserNameById(id) {
-    if (id) {
+    if (id && neighbors[id]) {
 	return neighbors[id].name;
     } else {
 	return "Unknown";
