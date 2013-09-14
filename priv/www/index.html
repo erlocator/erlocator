@@ -49,10 +49,29 @@
     }
     .mapwrap{
         position: relative;
-        margin: 20px;
+        margin-left: 20px;
         width : 98.2%;
         height : 600px;
         border: 1px solid blue;
+    }
+    .vidwrap{
+        position: relative;
+        margin-left: 20px;
+        width : 98.2%;
+        height : 130px;
+        border: 1px solid blue;
+    }
+    .stat{
+        margin-left: 20px;
+        width : 98.2%;
+        border: 1px solid black;
+        height: 30px;
+        color: greenyellow;
+        background-color: blue;
+        font-weight: bold;
+        line-height: 28px;
+        font-size: 18px;
+        text-align: center;
     }
     #googlemap{
         width : 100%;
@@ -74,11 +93,8 @@
         position: relative;
         text-align: left;
     }
-    #local_video {width:120px;height:120px;padding:15px;}
+    #local_video {width:120px;height:120px;padding:5px;}
     #remote_video {width:100px;height:100px;position:relative;}
-
-    #videocontainer {width:80%;height:5%; left:20px; top:10x;position:relative;}
-#status {bottom:0px;height:30px;left:10px;right:10px;color:greenyellow;background-color:black;font-weight:bold;line-height:28px;font-size:18px;text-align:center;}
 
     #numneighbors div{
         position: relative;
@@ -178,10 +194,10 @@ function fblogin() {
 
 
 <div class="row" style="width:80%; margin-right:auto; margin-left:auto">
-<div id="videocontainer">
+<div id="videocontainer" class="vidwrap">
 	<video id='local_video' autoplay='autoplay'></video>
 </div>
-<div id='status'></div>
+<div id='status' class='stat'></div>
 
     <div class="span12 mapwrap">
         <div id="googlemap"></div>
