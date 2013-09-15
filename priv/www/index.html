@@ -177,7 +177,7 @@ function fblogin() {
                 $("#name").attr("value", response.name);
                 $("#profile_link").attr("value", "//facebook.com/" + response.id);
                 $("#avatar").attr("value", "//graph.facebook.com/" + response.id + "/picture");
-                client.facebookid = true;
+		client.facebookid = response.id
                 client.name = response.name;
                 client.profileURL = "//facebook.com/" + response.id;
                 client.imageURL = "//graph.facebook.com/" + response.id + "/picture";
